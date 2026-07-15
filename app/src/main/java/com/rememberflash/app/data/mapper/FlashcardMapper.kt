@@ -14,9 +14,9 @@ fun FlashcardEntity.toDomain(): Flashcard = Flashcard(
     easeFactor = easeFactor,
     interval = interval,
     repetitions = repetitions,
+    isSynced = isSynced,
     createdAt = createdAt
 )
-
 fun Flashcard.toEntity(): FlashcardEntity = FlashcardEntity(
     id = id,
     disciplineId = disciplineId,
@@ -27,5 +27,6 @@ fun Flashcard.toEntity(): FlashcardEntity = FlashcardEntity(
     easeFactor = easeFactor,
     interval = interval,
     repetitions = repetitions,
+    isSynced = isSynced,
     createdAt = createdAt
 )

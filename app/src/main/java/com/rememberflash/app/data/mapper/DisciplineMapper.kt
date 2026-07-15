@@ -10,6 +10,8 @@ fun DisciplineEntity.toDomain(): Discipline = Discipline(
     weight = weight,
     totalTopics = totalTopics,
     completedTopics = completedTopics,
+    isActive = isActive,
+    isSynced = isSynced,
     createdAt = createdAt
 )
 
@@ -20,5 +22,7 @@ fun Discipline.toEntity(): DisciplineEntity = DisciplineEntity(
     weight = weight,
     totalTopics = totalTopics,
     completedTopics = completedTopics,
+    isActive = isActive,
+    isSynced = isSynced,
     createdAt = createdAt
 )

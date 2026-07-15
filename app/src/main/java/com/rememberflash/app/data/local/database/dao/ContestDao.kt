@@ -28,4 +28,10 @@ interface ContestDao {
 
     @Query("SELECT * FROM contests WHERE id = :contestId LIMIT 1")
     suspend fun getById(contestId: Long): ContestEntity?
+
+    @Query("SELECT * FROM contests WHERE is_synced = 0")
+    suspend fun getUnsyncedContests(): List<ContestEntity>
+
+    @Query("UPDATE contests SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markContestsAsSynced(ids: List<Long>)
 }

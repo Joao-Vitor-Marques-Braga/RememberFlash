@@ -55,12 +55,35 @@ class GeminiClient @Inject constructor(
     }
 
     override suspend fun evaluate(essayText: String, theme: String): String {
-        val prompt = PromptTemplates.buildEssayEvaluationPrompt(essayText, theme)
+        val rigor = preferencesManager.getRigor()
+        val tone = preferencesManager.getTone()
+        val prompt = PromptTemplates.buildEssayEvaluationPrompt(essayText, theme, rigor, tone)
         return generateContent(prompt)
     }
 
     suspend fun extractFlashcardsFromText(rawText: String): String {
-        val prompt = PromptTemplates.buildFlashcardExtractionPrompt(rawText)
+        val difficulty = preferencesManager.getDifficulty()
+        val tone = preferencesManager.getTone()
+        val prompt = PromptTemplates.buildFlashcardExtractionPrompt(rawText, difficulty, tone)
+        return generateContent(prompt)
+    }
+
+    suspend fun generateQuestions(
+        disciplineName: String,
+        banca: String,
+        format: String,
+        difficulty: String,
+        quantity: Int,
+        theme: String?
+    ): String {
+        val prompt = PromptTemplates.buildQuestionGenerationPrompt(
+            disciplineName = disciplineName,
+            banca = banca,
+            format = format,
+            difficulty = difficulty,
+            quantity = quantity,
+            theme = theme
+        )
         return generateContent(prompt)
     }
 

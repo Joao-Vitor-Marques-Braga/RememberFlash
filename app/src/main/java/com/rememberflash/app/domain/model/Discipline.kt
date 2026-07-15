@@ -13,6 +13,8 @@ data class Discipline(
     val weight: Double = 1.0,
     val totalTopics: Int = 0,
     val completedTopics: Int = 0,
+    val isActive: Boolean = true,
+    val isSynced: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 ) {
     val progressPercentage: Double

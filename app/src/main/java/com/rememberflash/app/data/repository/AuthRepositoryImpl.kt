@@ -1,9 +1,11 @@
 package com.rememberflash.app.data.repository
 
+import com.rememberflash.app.data.local.preferences.RegisteredUser
 import com.rememberflash.app.data.local.preferences.SecurePreferencesManager
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.User
 import com.rememberflash.app.domain.repository.AuthRepository
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,5 +43,38 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun hasGeminiApiKey(): Boolean {
         return preferencesManager.hasGeminiApiKey()
+    }
+
+    override suspend fun registerUser(name: String, cpf: String, email: String, passwordKey: String): Result<User> {
+        return try {
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                email = email,
+                cpf = cpf
+            )
+            val success = preferencesManager.saveRegisteredUser(RegisteredUser(user, passwordKey))
+            if (success) {
+                Result.success(user)
+            } else {
+                Result.error("E-mail ou CPF já cadastrado.")
+            }
+        } catch (e: Exception) {
+            Result.error("Erro ao registrar: ${e.localizedMessage}", e)
+        }
+    }
+
+    override suspend fun authenticateUser(email: String, passwordKey: String): Result<User> {
+        return try {
+            val registered = preferencesManager.findRegisteredUser(email)
+                ?: return Result.error("Usuário não cadastrado. Por favor, registre-se primeiro.")
+            
+            if (registered.passwordKey != passwordKey) {
+                return Result.error("Senha incorreta.")
+            }
+            Result.success(registered.user)
+        } catch (e: Exception) {
+            Result.error("Erro ao autenticar: ${e.localizedMessage}", e)
+        }
     }
 }

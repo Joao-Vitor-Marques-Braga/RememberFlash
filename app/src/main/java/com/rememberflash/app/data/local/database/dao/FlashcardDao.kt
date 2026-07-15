@@ -53,4 +53,10 @@ interface FlashcardDao {
         repetitions: Int,
         nextReviewAt: Long
     )
+
+    @Query("SELECT * FROM flashcards WHERE is_synced = 0")
+    suspend fun getUnsyncedFlashcards(): List<FlashcardEntity>
+
+    @Query("UPDATE flashcards SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markFlashcardsAsSynced(ids: List<Long>)
 }

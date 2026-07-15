@@ -17,6 +17,10 @@ import com.rememberflash.app.presentation.auth.ForgotPasswordScreen
 import com.rememberflash.app.presentation.auth.ResetPasswordScreen
 import com.rememberflash.app.presentation.home.HomeScreen
 import com.rememberflash.app.presentation.contest.form.ContestFormScreen
+import com.rememberflash.app.presentation.contest.detail.ContestDetailScreen
+import com.rememberflash.app.presentation.settings.SettingsScreen
+import com.rememberflash.app.presentation.discipline.DisciplineScreen
+import com.rememberflash.app.presentation.question.resolve.QuestionResolveScreen
 
 /**
  * Rotas de navegação do RememberFlash.
@@ -38,6 +42,7 @@ object Routes {
     const val ESSAY_RESULT = "essay_result/{essayId}"
     const val SCHEDULE = "schedule/{contestId}"
     const val SETTINGS = "settings"
+    const val QUESTION_RESOLVE = "question_resolve/{disciplineId}"
 
     fun contestDetail(contestId: Long) = "contest_detail/$contestId"
     fun contestForm(contestId: Long? = null) = if (contestId != null) "contest_form?contestId=$contestId" else "contest_form"
@@ -46,6 +51,7 @@ object Routes {
     fun essayResult(essayId: Long) = "essay_result/$essayId"
     fun schedule(contestId: Long) = "schedule/$contestId"
     fun resetPassword(email: String) = "reset_password/$email"
+    fun questionResolve(disciplineId: Long) = "question_resolve/$disciplineId"
 }
 
 @Composable
@@ -115,7 +121,10 @@ fun AppNavGraph(
                     navController.navigate(Routes.contestForm())
                 },
                 onNavigateToContestDetail = { contestId ->
-                    navController.navigate(Routes.contestForm(contestId)) // Temporary for edit
+                    navController.navigate(Routes.contestDetail(contestId))
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Routes.SETTINGS)
                 }
             )
         }
@@ -141,16 +150,56 @@ fun AppNavGraph(
             PlaceholderScreen(title = "Meus Concursos")
         }
 
-        composable(Routes.CONTEST_DETAIL) {
-            PlaceholderScreen(title = "Detalhes do Concurso")
+        composable(
+            route = Routes.CONTEST_DETAIL,
+            arguments = listOf(androidx.navigation.navArgument("contestId") {
+                type = androidx.navigation.NavType.StringType
+            })
+        ) {
+            ContestDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToEditContest = { contestId ->
+                    navController.navigate(Routes.contestForm(contestId))
+                },
+                onNavigateToFlashcards = { disciplineId ->
+                    navController.navigate(Routes.flashcardDeck(disciplineId))
+                }
+            )
         }
 
         composable(Routes.DISCIPLINE_LIST) {
             PlaceholderScreen(title = "Disciplinas")
         }
 
-        composable(Routes.FLASHCARD_DECK) {
-            PlaceholderScreen(title = "Flashcards")
+        composable(
+            route = Routes.FLASHCARD_DECK,
+            arguments = listOf(androidx.navigation.navArgument("disciplineId") {
+                type = androidx.navigation.NavType.LongType
+            })
+        ) {
+            DisciplineScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToResolveQuestions = { disciplineId ->
+                    navController.navigate(Routes.questionResolve(disciplineId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.QUESTION_RESOLVE,
+            arguments = listOf(androidx.navigation.navArgument("disciplineId") {
+                type = androidx.navigation.NavType.LongType
+            })
+        ) {
+            QuestionResolveScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(Routes.ESSAY_CAPTURE) {
@@ -166,7 +215,11 @@ fun AppNavGraph(
         }
 
         composable(Routes.SETTINGS) {
-            PlaceholderScreen(title = "Configurações")
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

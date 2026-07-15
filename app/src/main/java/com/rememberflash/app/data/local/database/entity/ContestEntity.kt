@@ -31,6 +31,9 @@ data class ContestEntity(
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
 
+    @ColumnInfo(name = "is_synced", defaultValue = "0")
+    val isSynced: Boolean = false,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

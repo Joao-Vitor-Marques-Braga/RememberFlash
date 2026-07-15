@@ -31,16 +31,16 @@ class RegisterUseCase @Inject constructor(
         }
 
         // Sucesso: cria o usuário simulado e salva a sessão
-        val user = User(
-            id = UUID.randomUUID().toString(),
-            name = name,
-            email = email,
-            cpf = cleanCpf
-        )
-        
         return try {
-            authRepository.saveSession(token = "mock_token_register", user = user)
-            Result.success(Unit)
+            val regResult = authRepository.registerUser(name = name, cpf = cleanCpf, email = email, passwordKey = password)
+            when (regResult) {
+                is Result.Success -> {
+                    authRepository.saveSession(token = "mock_token_register", user = regResult.data)
+                    Result.success(Unit)
+                }
+                is Result.Error -> Result.error(regResult.message)
+                else -> Result.error("Erro desconhecido")
+            }
         } catch (e: Exception) {
             Result.error("Erro ao salvar perfil: ${e.localizedMessage}")
         }

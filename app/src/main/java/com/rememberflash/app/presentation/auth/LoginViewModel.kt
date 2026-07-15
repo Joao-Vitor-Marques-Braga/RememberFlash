@@ -3,8 +3,6 @@ package com.rememberflash.app.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.usecase.auth.LoginUseCase
-import com.rememberflash.app.domain.model.User
-import java.util.UUID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,14 +44,7 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
-            // Mock login for MVP
-            val mockUser = User(
-                id = UUID.randomUUID().toString(),
-                name = "Usuário Teste",
-                email = email,
-                cpf = "00000000000"
-            )
-            val result = loginUseCase(token = "mock_token_123", user = mockUser)
+            val result = loginUseCase(email = email, passwordKey = password)
             when (result) {
                 is com.rememberflash.app.domain.common.Result.Success -> {
                     _uiState.value = _uiState.value.copy(

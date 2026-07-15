@@ -7,6 +7,7 @@ import com.rememberflash.app.data.local.database.dao.ContestDao
 import com.rememberflash.app.data.local.database.dao.DisciplineDao
 import com.rememberflash.app.data.local.database.dao.EssayDao
 import com.rememberflash.app.data.local.database.dao.FlashcardDao
+import com.rememberflash.app.data.local.database.dao.QuestionDao
 import com.rememberflash.app.data.local.database.dao.ScheduleDao
 import dagger.Module
 import dagger.Provides
@@ -27,6 +28,11 @@ object DatabaseModule {
             RememberFlashDatabase::class.java,
             RememberFlashDatabase.DATABASE_NAME
         )
+            .addMigrations(
+                RememberFlashDatabase.MIGRATION_1_2,
+                RememberFlashDatabase.MIGRATION_2_3,
+                RememberFlashDatabase.MIGRATION_3_4
+            )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
@@ -45,4 +51,7 @@ object DatabaseModule {
 
     @Provides
     fun provideScheduleDao(database: RememberFlashDatabase): ScheduleDao = database.scheduleDao()
+
+    @Provides
+    fun provideQuestionDao(database: RememberFlashDatabase): QuestionDao = database.questionDao()
 }

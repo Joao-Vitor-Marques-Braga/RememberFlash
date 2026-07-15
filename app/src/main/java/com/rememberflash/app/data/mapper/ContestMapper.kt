@@ -13,6 +13,7 @@ fun ContestEntity.toDomain(): Contest = Contest(
     syllabusPdfUri = syllabusPdfUri,
     examDate = examDate,
     isActive = isActive,
+    isSynced = isSynced,
     createdAt = createdAt,
     updatedAt = updatedAt
 )
@@ -27,6 +28,7 @@ fun Contest.toEntity(): ContestEntity = ContestEntity(
     syllabusPdfUri = syllabusPdfUri,
     examDate = examDate,
     isActive = isActive,
+    isSynced = isSynced,
     createdAt = createdAt,
     updatedAt = updatedAt
 )

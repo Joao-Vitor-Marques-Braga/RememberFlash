@@ -15,6 +15,7 @@ data class Contest(
     val syllabusPdfUri: String? = null,
     val examDate: Long? = null,
     val isActive: Boolean = true,
+    val isSynced: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

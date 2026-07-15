@@ -3,10 +3,13 @@ package com.rememberflash.app.data.local.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.rememberflash.app.data.local.database.dao.ContestDao
 import com.rememberflash.app.data.local.database.dao.DisciplineDao
 import com.rememberflash.app.data.local.database.dao.EssayDao
 import com.rememberflash.app.data.local.database.dao.FlashcardDao
+import com.rememberflash.app.data.local.database.dao.QuestionDao
 import com.rememberflash.app.data.local.database.dao.ScheduleDao
 import com.rememberflash.app.data.local.database.entity.ContestEntity
 import com.rememberflash.app.data.local.database.entity.DailyGoalEntity
@@ -26,7 +29,7 @@ import com.rememberflash.app.data.local.database.entity.ScheduleEntity
         ScheduleEntity::class,
         DailyGoalEntity::class
     ],
-    version = 1,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -37,8 +40,28 @@ abstract class RememberFlashDatabase : RoomDatabase() {
     abstract fun flashcardDao(): FlashcardDao
     abstract fun essayDao(): EssayDao
     abstract fun scheduleDao(): ScheduleDao
+    abstract fun questionDao(): QuestionDao
 
     companion object {
         const val DATABASE_NAME = "remember_flash_db"
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE disciplines ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contests ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE disciplines ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE flashcards ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+            }
+        }
     }
 }

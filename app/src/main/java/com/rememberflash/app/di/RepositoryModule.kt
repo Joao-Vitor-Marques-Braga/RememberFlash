@@ -7,12 +7,14 @@ import com.rememberflash.app.data.repository.ContestRepositoryImpl
 import com.rememberflash.app.data.repository.DisciplineRepositoryImpl
 import com.rememberflash.app.data.repository.EssayRepositoryImpl
 import com.rememberflash.app.data.repository.FlashcardRepositoryImpl
+import com.rememberflash.app.data.repository.QuestionRepositoryImpl
 import com.rememberflash.app.data.repository.ScheduleRepositoryImpl
 import com.rememberflash.app.domain.repository.AuthRepository
 import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.EssayRepository
 import com.rememberflash.app.domain.repository.FlashcardRepository
+import com.rememberflash.app.domain.repository.QuestionRepository
 import com.rememberflash.app.domain.repository.ScheduleRepository
 import com.rememberflash.app.domain.usecase.essay.EvaluateEssayUseCase
 import com.rememberflash.app.domain.usecase.essay.ExtractTextFromImageUseCase
@@ -49,6 +51,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindScheduleRepository(impl: ScheduleRepositoryImpl): ScheduleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindQuestionRepository(impl: QuestionRepositoryImpl): QuestionRepository
 
     @Binds
     @Singleton

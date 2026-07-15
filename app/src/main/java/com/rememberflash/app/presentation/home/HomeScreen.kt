@@ -25,12 +25,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rememberflash.app.R
 import com.rememberflash.app.domain.model.Contest
+import com.rememberflash.app.presentation.theme.AccentOrange
+import com.rememberflash.app.presentation.theme.SuccessGreen
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToCreateContest: () -> Unit,
-    onNavigateToContestDetail: (Long) -> Unit
+    onNavigateToContestDetail: (Long) -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -114,12 +117,21 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                IconButton(onClick = { /* Notificações */ }) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsNone,
-                        contentDescription = "Notificações",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
+                Row {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Configurações",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    IconButton(onClick = { /* Notificações */ }) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsNone,
+                            contentDescription = "Notificações",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                 }
             }
 
@@ -235,18 +247,41 @@ fun ContestCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                text = contest.title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = contest.title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                if (contest.isSynced) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDone,
+                        contentDescription = "Sincronizado",
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CloudQueue,
+                        contentDescription = "Pendente de sincronização",
+                        tint = AccentOrange,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             
             if (contest.organizerName.isNotBlank()) {
                 Text(
                     text = "Banca: ${contest.organizerName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
                 )
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
