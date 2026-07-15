@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RememberFlash</string>
+    <string name="app_description">Estude de forma inteligente para concursos públicos</string>
+
+    <!-- Auth -->
+    <string name="login_title">Entrar</string>
+    <string name="login_email_hint">E-mail</string>
+    <string name="login_password_hint">Senha</string>
+    <string name="login_button">Acessar</string>
+    <string name="logout_button">Sair</string>
+
+    <!-- Concursos -->
+    <string name="contests_title">Meus Concursos</string>
+    <string name="contest_new">Novo Concurso</string>
+    <string name="contest_title_hint">Título do concurso</string>
+    <string name="contest_organizer_hint">Banca organizadora</string>
+    <string name="contest_exam_date_hint">Data da prova</string>
+    <string name="contest_delete_confirm">Deseja inativar este concurso? O histórico será preservado.</string>
+
+    <!-- Disciplinas -->
+    <string name="disciplines_title">Disciplinas</string>
+    <string name="discipline_new">Nova Disciplina</string>
+    <string name="discipline_name_hint">Nome da disciplina</string>
+    <string name="discipline_weight_hint">Peso na prova</string>
+
+    <!-- Flashcards -->
+    <string name="flashcards_title">Flashcards</string>
+    <string name="flashcard_new">Novo Flashcard</string>
+    <string name="flashcard_front_hint">Frente (pergunta)</string>
+    <string name="flashcard_back_hint">Verso (resposta)</string>
+    <string name="flashcard_extract_pdf">Extrair de PDF</string>
+
+    <!-- Redação -->
+    <string name="essay_title">Avaliação de Redação</string>
+    <string name="essay_capture">Capturar Redação</string>
+    <string name="essay_processing_ocr">Extraindo texto da imagem…</string>
+    <string name="essay_processing_ai">Avaliando redação com IA…</string>
+    <string name="essay_theme_hint">Tema da redação</string>
+
+    <!-- Cronograma -->
+    <string name="schedule_title">Cronograma Dinâmico</string>
+    <string name="schedule_recalculate">Recalcular Cronograma</string>
+    <string name="schedule_hours_hint">Horas disponíveis por dia</string>
+
+    <!-- Configurações -->
+    <string name="settings_title">Configurações</string>
+    <string name="settings_gemini_key">Chave API do Gemini (BYOK)</string>
+    <string name="settings_gemini_key_hint">Cole sua API Key aqui</string>
+    <string name="settings_gemini_key_required">Informe sua API Key do Gemini para usar recursos de IA</string>
+
+    <!-- Geral -->
+    <string name="save">Salvar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete">Excluir</string>
+    <string name="edit">Editar</string>
+    <string name="loading">Carregando…</string>
+    <string name="error_generic">Ocorreu um erro. Tente novamente.</string>
+    <string name="empty_state">Nenhum item encontrado</string>
+</resources>
