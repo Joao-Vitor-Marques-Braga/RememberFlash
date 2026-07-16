@@ -40,4 +40,19 @@ class QuestionRepositoryImpl @Inject constructor(
             Result.error("Falha ao limpar questões: ${e.localizedMessage}", e)
         }
     }
+
+    override suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit> {
+        return try {
+            questionDao.updateAnswer(questionId, chosenOption, isCorrect, System.currentTimeMillis())
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Falha ao registrar resposta da questão: ${e.localizedMessage}", e)
+        }
+    }
+
+    override fun getAllQuestions(): Flow<List<Question>> {
+        return questionDao.getAllQuestions().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 }

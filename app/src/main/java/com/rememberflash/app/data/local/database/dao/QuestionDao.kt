@@ -18,4 +18,10 @@ interface QuestionDao {
 
     @Query("DELETE FROM questions WHERE discipline_id = :disciplineId")
     suspend fun deleteByDiscipline(disciplineId: Long)
+
+    @Query("UPDATE questions SET chosen_option = :chosenOption, is_correct = :isCorrect, answered_at = :answeredAt WHERE id = :questionId")
+    suspend fun updateAnswer(questionId: Long, chosenOption: Int, isCorrect: Boolean, answeredAt: Long)
+
+    @Query("SELECT * FROM questions")
+    fun getAllQuestions(): Flow<List<QuestionEntity>>
 }

@@ -1,13 +1,10 @@
 package com.rememberflash.app.presentation.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -57,8 +54,8 @@ fun HomeScreen(
                     onClick = { currentTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.ListAlt, contentDescription = "Simulados") },
-                    label = { Text("Simulados") },
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Desempenho") },
+                    label = { Text("Desempenho") },
                     selected = currentTab == 2,
                     onClick = { currentTab = 2 }
                 )
@@ -361,8 +358,303 @@ fun HomeScreen(
                     }
                 }
                 2 -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Aba de Simulados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // Aba Desempenho
+                    var periodFilter by remember { mutableStateOf("Geral") }
+                    var disciplineFilterId by remember { mutableStateOf<Long?>(null) }
+                    var isDisciplineDropdownExpanded by remember { mutableStateOf(false) }
+
+                    val now = System.currentTimeMillis()
+                    val timeFilteredQuestions = uiState.allQuestions.filter { question ->
+                        if (question.chosenOption == null) return@filter false
+                        when (periodFilter) {
+                            "7 dias" -> question.answeredAt != null && question.answeredAt >= now - 7 * 24 * 3600 * 1000L
+                            "30 dias" -> question.answeredAt != null && question.answeredAt >= now - 30 * 24 * 3600 * 1000L
+                            else -> true
+                        }
+                    }
+
+                    val filteredQuestions = timeFilteredQuestions.filter { question ->
+                        disciplineFilterId == null || question.disciplineId == disciplineFilterId
+                    }
+
+                    val totalAnswered = filteredQuestions.size
+                    val totalCorrect = filteredQuestions.count { it.isCorrect == true }
+                    val totalWrong = filteredQuestions.count { it.isCorrect == false }
+                    val correctPct = if (totalAnswered > 0) (totalCorrect * 100) / totalAnswered else 0
+                    val wrongPct = if (totalAnswered > 0) (totalWrong * 100) / totalAnswered else 0
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Exibindo dados offline. Conecte-se à internet para sincronizar.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Desempenho de Estudos",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("7 dias", "30 dias", "Geral").forEach { p ->
+                                val isSelected = periodFilter == p
+                                Surface(
+                                    onClick = { periodFilter = p },
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = p,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            val selectedDisciplineName = uiState.allDisciplines.firstOrNull { it.id == disciplineFilterId }?.name ?: "Todas"
+                            
+                            OutlinedButton(
+                                onClick = { isDisciplineDropdownExpanded = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(text = "Filtro Disciplina: $selectedDisciplineName")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+
+                            DropdownMenu(
+                                expanded = isDisciplineDropdownExpanded,
+                                onDismissRequest = { isDisciplineDropdownExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Todas") },
+                                    onClick = {
+                                        disciplineFilterId = null
+                                        isDisciplineDropdownExpanded = false
+                                    }
+                                )
+                                uiState.allDisciplines.forEach { disc ->
+                                    DropdownMenuItem(
+                                        text = { Text(disc.name) },
+                                        onClick = {
+                                            disciplineFilterId = disc.id
+                                            isDisciplineDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        if (uiState.allQuestions.none { it.chosenOption != null }) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Você ainda não respondeu nenhuma questão.",
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Button(
+                                    onClick = { currentTab = 0 },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Ir para Concursos")
+                                }
+                            }
+                        } else {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Rendimento Global",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    )
+
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.size(140.dp)
+                                    ) {
+                                        CircularProgressIndicator(
+                                            progress = { correctPct.toFloat() / 100f },
+                                            modifier = Modifier.size(120.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 12.dp,
+                                            trackColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                            strokeCap = StrokeCap.Round
+                                        )
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "$correctPct%",
+                                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "Acertos",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceAround
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "$totalAnswered",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(text = "Respondidas", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "$totalCorrect",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(text = "Acertos ($correctPct%)", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "$totalWrong",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                            Text(text = "Erros ($wrongPct%)", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = "Desempenho por Matéria",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
+                            uiState.allDisciplines.forEach { disc ->
+                                val discQuestions = timeFilteredQuestions.filter { it.disciplineId == disc.id }
+                                if (discQuestions.isNotEmpty()) {
+                                    val discTotal = discQuestions.size
+                                    val discCorrect = discQuestions.count { it.isCorrect == true }
+                                    val discCorrectPct = (discCorrect * 100) / discTotal
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 12.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = disc.name,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                    modifier = Modifier.weight(1f),
+                                                    maxLines = 1
+                                                )
+                                                Text(
+                                                    text = "$discCorrect/$discTotal ($discCorrectPct%)",
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            LinearProgressIndicator(
+                                                progress = { discCorrectPct.toFloat() / 100f },
+                                                modifier = Modifier.fillMaxWidth().height(6.dp),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                strokeCap = StrokeCap.Round
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 3 -> {

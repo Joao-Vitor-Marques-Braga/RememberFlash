@@ -8,4 +8,6 @@ interface QuestionRepository {
     fun getQuestionsByDiscipline(disciplineId: Long): Flow<List<Question>>
     suspend fun saveQuestions(questions: List<Question>): Result<Unit>
     suspend fun clearQuestionsByDiscipline(disciplineId: Long): Result<Unit>
+    suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit>
+    fun getAllQuestions(): Flow<List<Question>>
 }

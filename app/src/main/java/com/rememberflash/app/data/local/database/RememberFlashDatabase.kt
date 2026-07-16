@@ -29,7 +29,7 @@ import com.rememberflash.app.data.local.database.entity.ScheduleEntity
         ScheduleEntity::class,
         DailyGoalEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

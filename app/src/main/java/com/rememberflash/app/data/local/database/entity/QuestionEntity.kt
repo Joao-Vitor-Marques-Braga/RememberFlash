@@ -37,6 +37,15 @@ data class QuestionEntity(
 
     val source: String = "MANUAL",
 
+    @ColumnInfo(name = "chosen_option")
+    val chosenOption: Int? = null,
+
+    @ColumnInfo(name = "is_correct")
+    val isCorrect: Boolean? = null,
+
+    @ColumnInfo(name = "answered_at")
+    val answeredAt: Long? = null,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -18,6 +18,7 @@ import javax.inject.Inject
 class QuestionResolveViewModel @Inject constructor(
     private val getDisciplineByIdUseCase: GetDisciplineByIdUseCase,
     private val getQuestionsByDisciplineUseCase: GetQuestionsByDisciplineUseCase,
+    private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -78,6 +79,11 @@ class QuestionResolveViewModel @Inject constructor(
             submittedAnswers = updatedSet,
             score = newScore
         )
+
+        // Persistência local no banco de dados
+        viewModelScope.launch {
+            questionRepository.answerQuestion(question.id, selectedIndex, isCorrect)
+        }
     }
 
     fun nextQuestion() {

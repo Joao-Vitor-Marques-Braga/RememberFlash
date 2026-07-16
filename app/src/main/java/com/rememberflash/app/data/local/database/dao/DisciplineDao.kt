@@ -31,4 +31,7 @@ interface DisciplineDao {
 
     @Query("UPDATE disciplines SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markDisciplinesAsSynced(ids: List<Long>)
+
+    @Query("SELECT * FROM disciplines WHERE is_active = 1")
+    fun getAllDisciplines(): Flow<List<DisciplineEntity>>
 }

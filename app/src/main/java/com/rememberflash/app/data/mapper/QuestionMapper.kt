@@ -24,6 +24,9 @@ fun QuestionEntity.toDomain(): Question {
         correctIndex = correctIndex,
         explanation = explanation,
         source = try { QuestionSource.valueOf(source) } catch (_: Exception) { QuestionSource.MANUAL },
+        chosenOption = chosenOption,
+        isCorrect = isCorrect,
+        answeredAt = answeredAt,
         createdAt = createdAt
     )
 }
@@ -43,6 +46,9 @@ fun Question.toEntity(): QuestionEntity {
         correctIndex = correctIndex,
         explanation = explanation,
         source = source.name,
+        chosenOption = chosenOption,
+        isCorrect = isCorrect,
+        answeredAt = answeredAt,
         createdAt = createdAt
     )
 }

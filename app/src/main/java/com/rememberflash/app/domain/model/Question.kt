@@ -13,5 +13,8 @@ data class Question(
     val correctIndex: Int,
     val explanation: String? = null,
     val source: QuestionSource = QuestionSource.MANUAL,
+    val chosenOption: Int? = null,
+    val isCorrect: Boolean? = null,
+    val answeredAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

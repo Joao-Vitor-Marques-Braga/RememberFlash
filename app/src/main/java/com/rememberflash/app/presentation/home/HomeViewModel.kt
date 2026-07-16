@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
+import com.rememberflash.app.domain.model.Discipline
 import com.rememberflash.app.domain.model.Essay
+import com.rememberflash.app.domain.model.Question
 import com.rememberflash.app.domain.model.User
 import com.rememberflash.app.domain.repository.AuthRepository
+import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.EssayRepository
+import com.rememberflash.app.domain.repository.QuestionRepository
 import com.rememberflash.app.domain.usecase.contest.GetActiveContestsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +26,8 @@ data class HomeUiState(
     val user: User? = null,
     val activeContests: List<Contest> = emptyList(),
     val essays: List<Essay> = emptyList(),
+    val allQuestions: List<Question> = emptyList(),
+    val allDisciplines: List<Discipline> = emptyList(),
     val dailyGoalProgress: Float = 0.65f, // Mock conforme protótipo
     val isLoading: Boolean = true,
     val error: String? = null
@@ -31,7 +37,9 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val getActiveContestsUseCase: GetActiveContestsUseCase,
-    private val essayRepository: EssayRepository
+    private val essayRepository: EssayRepository,
+    private val questionRepository: QuestionRepository,
+    private val disciplineRepository: DisciplineRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -72,6 +80,26 @@ class HomeViewModel @Inject constructor(
                         .collect { essays ->
                             _uiState.value = _uiState.value.copy(
                                 essays = essays
+                            )
+                        }
+                }
+
+                launch {
+                    questionRepository.getAllQuestions()
+                        .catch { }
+                        .collect { questions ->
+                            _uiState.value = _uiState.value.copy(
+                                allQuestions = questions
+                            )
+                        }
+                }
+
+                launch {
+                    disciplineRepository.getAllDisciplines()
+                        .catch { }
+                        .collect { disciplines ->
+                            _uiState.value = _uiState.value.copy(
+                                allDisciplines = disciplines
                             )
                         }
                 }

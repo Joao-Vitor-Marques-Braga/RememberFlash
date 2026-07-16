@@ -58,4 +58,10 @@ class DisciplineRepositoryImpl @Inject constructor(
             Result.error("Erro ao buscar disciplina: ${e.localizedMessage}", e)
         }
     }
+
+    override fun getAllDisciplines(): Flow<List<Discipline>> {
+        return disciplineDao.getAllDisciplines().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 }

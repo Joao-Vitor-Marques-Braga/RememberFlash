@@ -10,4 +10,5 @@ interface DisciplineRepository {
     suspend fun delete(disciplineId: Long): Result<Unit>
     fun getByContest(contestId: Long): Flow<List<Discipline>>
     suspend fun getById(disciplineId: Long): Result<Discipline>
+    fun getAllDisciplines(): Flow<List<Discipline>>
 }
