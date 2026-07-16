@@ -185,9 +185,10 @@ class DisciplineViewModel @Inject constructor(
                     else -> {}
                 }
             } catch (e: Exception) {
+                android.util.Log.e("DisciplineViewModel", "Erro ao gerar flashcards via PDF", e)
                 _uiState.value = _uiState.value.copy(
                     isGeneratingFlashcards = false,
-                    error = "A Criação automática demorou a responder ou o texto é muito complexo. Tente novamente em instantes."
+                    error = "Erro detalhado da API Gemini: ${e.localizedMessage ?: e.message ?: e.toString()}"
                 )
             }
         }

@@ -21,6 +21,8 @@ import com.rememberflash.app.presentation.contest.detail.ContestDetailScreen
 import com.rememberflash.app.presentation.settings.SettingsScreen
 import com.rememberflash.app.presentation.discipline.DisciplineScreen
 import com.rememberflash.app.presentation.question.resolve.QuestionResolveScreen
+import com.rememberflash.app.presentation.essay.capture.EssayCaptureScreen
+import com.rememberflash.app.presentation.essay.result.EssayResultScreen
 
 /**
  * Rotas de navegação do RememberFlash.
@@ -125,6 +127,12 @@ fun AppNavGraph(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Routes.SETTINGS)
+                },
+                onNavigateToEssayCapture = {
+                    navController.navigate(Routes.ESSAY_CAPTURE)
+                },
+                onNavigateToEssayResult = { essayId ->
+                    navController.navigate("essay_result/$essayId")
                 }
             )
         }
@@ -203,11 +211,32 @@ fun AppNavGraph(
         }
 
         composable(Routes.ESSAY_CAPTURE) {
-            PlaceholderScreen(title = "Capturar Redação")
+            EssayCaptureScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToResult = { essayId ->
+                    navController.navigate("essay_result/$essayId")
+                }
+            )
         }
 
-        composable(Routes.ESSAY_RESULT) {
-            PlaceholderScreen(title = "Resultado da Redação")
+        composable(
+            route = Routes.ESSAY_RESULT,
+            arguments = listOf(androidx.navigation.navArgument("essayId") {
+                type = androidx.navigation.NavType.LongType
+            })
+        ) {
+            EssayResultScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToHome = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Routes.SCHEDULE) {

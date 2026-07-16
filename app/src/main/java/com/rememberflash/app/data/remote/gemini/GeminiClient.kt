@@ -87,7 +87,16 @@ class GeminiClient @Inject constructor(
         return generateContent(prompt)
     }
 
+    suspend fun parseSyllabusAndRules(
+        header: String,
+        rules: String,
+        syllabus: String
+    ): String {
+        val prompt = PromptTemplates.buildSyllabusAndRulesParsingPrompt(header, rules, syllabus)
+        return generateContent(prompt)
+    }
+
     companion object {
-        const val MODEL_NAME = "gemini-2.0-flash"
+        const val MODEL_NAME = "gemini-3.1-flash-lite"
     }
 }

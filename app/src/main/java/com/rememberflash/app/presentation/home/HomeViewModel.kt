@@ -4,20 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
+import com.rememberflash.app.domain.model.Essay
 import com.rememberflash.app.domain.model.User
 import com.rememberflash.app.domain.repository.AuthRepository
+import com.rememberflash.app.domain.repository.EssayRepository
 import com.rememberflash.app.domain.usecase.contest.GetActiveContestsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
     val user: User? = null,
     val activeContests: List<Contest> = emptyList(),
+    val essays: List<Essay> = emptyList(),
     val dailyGoalProgress: Float = 0.65f, // Mock conforme protótipo
     val isLoading: Boolean = true,
     val error: String? = null
@@ -26,7 +30,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val getActiveContestsUseCase: GetActiveContestsUseCase
+    private val getActiveContestsUseCase: GetActiveContestsUseCase,
+    private val essayRepository: EssayRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -40,26 +45,36 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
-            // Carrega usuário da sessão
             val sessionResult = authRepository.getCurrentSession()
             if (sessionResult is Result.Success) {
                 val user = sessionResult.data
                 _uiState.value = _uiState.value.copy(user = user)
                 
-                // Carrega os concursos ativos
-                getActiveContestsUseCase(user.id)
-                    .catch { e ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "Erro ao carregar concursos: ${e.localizedMessage}"
-                        )
-                    }
-                    .collect { contests ->
-                        _uiState.value = _uiState.value.copy(
-                            activeContests = contests,
-                            isLoading = false
-                        )
-                    }
+                launch {
+                    getActiveContestsUseCase(user.id)
+                        .catch { e ->
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = "Erro ao carregar concursos: ${e.localizedMessage}"
+                            )
+                        }
+                        .collect { contests ->
+                            _uiState.value = _uiState.value.copy(
+                                activeContests = contests,
+                                isLoading = false
+                            )
+                        }
+                }
+
+                launch {
+                    essayRepository.getByUser(user.id)
+                        .catch { }
+                        .collect { essays ->
+                            _uiState.value = _uiState.value.copy(
+                                essays = essays
+                            )
+                        }
+                }
             } else {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

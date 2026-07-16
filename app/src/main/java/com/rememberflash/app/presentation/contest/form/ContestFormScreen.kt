@@ -100,6 +100,7 @@ fun ContestFormScreen(
                 value = uiState.title,
                 onValueChange = viewModel::onTitleChanged,
                 label = { Text("Título do Concurso") },
+                placeholder = { Text("Preenchimento Automático (via PDF)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -111,6 +112,7 @@ fun ContestFormScreen(
                 value = uiState.organizerName,
                 onValueChange = viewModel::onOrganizerChanged,
                 label = { Text("Banca Examinadora") },
+                placeholder = { Text("Preenchimento Automático (via PDF)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true

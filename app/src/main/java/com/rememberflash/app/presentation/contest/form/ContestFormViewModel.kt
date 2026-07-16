@@ -100,8 +100,8 @@ class ContestFormViewModel @Inject constructor(
 
     fun onSaveClicked() {
         val state = _uiState.value
-        if (state.title.isBlank() || state.organizerName.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Preencha o título e a banca examinadora.")
+        if ((state.title.isBlank() || state.organizerName.isBlank()) && state.syllabusPdfUri.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(error = "Preencha o título e a banca examinadora, ou selecione um edital para preenchimento automático.")
             return
         }
 

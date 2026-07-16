@@ -152,4 +152,35 @@ object PromptTemplates {
         |
         |Atenção: Se o formato for Certo/Errado, a lista "options" deve conter exatamente duas strings: ["Certo", "Errado"]. O "correctIndex" será 0 para Certo e 1 para Errado.
     """.trimMargin()
+
+    fun buildSyllabusAndRulesParsingPrompt(
+        header: String,
+        rules: String,
+        syllabus: String
+    ): String = """
+        |Analise os recortes de texto do edital abaixo e retorne APENAS um objeto JSON estruturado.
+        |
+        |### TEXTO DE CABEÇALHO DO EDITAL:
+        |$header
+        |
+        |### TEXTO DE REGRAS E PROIBIÇÕES:
+        |$rules
+        |
+        |### CONTEÚDO PROGRAMÁTICO DO CARGO:
+        |$syllabus
+        |
+        |### INSTRUÇÕES DE RETORNO:
+        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou texto adicional:
+        |{
+        |  "title": "Nome simplificado do concurso (Ex: INSS, Banco do Brasil, Polícia Federal)",
+        |  "organizer": "Nome da banca organizadora (Ex: CESPE, FCC, FGV)",
+        |  "examFormat": "Certo/Errado ou Múltipla Escolha",
+        |  "examDate": "Data da prova escrita em formato DD/MM/AAAA ou nulo se não achar",
+        |  "examLocation": "Cidades ou regiões de aplicação da prova",
+        |  "allowedPen": "Especificação da caneta permitida (cor e tipo de tubo)",
+        |  "allowedItems": ["item 1", "item 2"],
+        |  "prohibitedItems": ["item 1", "item 2"],
+        |  "disciplines": ["Disciplina A", "Disciplina B"]
+        |}
+    """.trimMargin()
 }

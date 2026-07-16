@@ -103,11 +103,12 @@ class GenerateQuestionsUseCase @Inject constructor(
             questionRepository.saveQuestions(questions)
             Result.success(Unit)
         } catch (e: Exception) {
-            val msg = e.localizedMessage ?: ""
+            android.util.Log.e("GenerateQuestionsUseCase", "Erro ao gerar questões via IA", e)
+            val msg = e.localizedMessage ?: e.message ?: e.toString()
             if (msg.contains("safety", ignoreCase = true) || msg.contains("blocked", ignoreCase = true)) {
-                Result.error("O tema solicitado foi bloqueado pelas políticas de segurança da IA do Google.")
+                Result.error("O tema solicitado foi bloqueado pelas políticas de segurança da IA do Google. Erro: $msg")
             } else {
-                Result.error("A Criação automática demorou a responder ou o texto é muito complexo. Tente novamente em instantes.")
+                Result.error("Erro detalhado da API Gemini: $msg")
             }
         }
     }

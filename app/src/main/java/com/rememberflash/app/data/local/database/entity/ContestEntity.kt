@@ -28,6 +28,21 @@ data class ContestEntity(
     @ColumnInfo(name = "exam_date")
     val examDate: Long? = null,
 
+    @ColumnInfo(name = "exam_date_str")
+    val examDateStr: String? = null,
+
+    @ColumnInfo(name = "exam_location")
+    val examLocation: String? = null,
+
+    @ColumnInfo(name = "allowed_pen")
+    val allowedPen: String? = null,
+
+    @ColumnInfo(name = "allowed_items")
+    val allowedItems: String? = null,
+
+    @ColumnInfo(name = "prohibited_items")
+    val prohibitedItems: String? = null,
+
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
 
