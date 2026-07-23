@@ -11,15 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,7 +30,8 @@ fun ContestDetailScreen(
     viewModel: ContestDetailViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToEditContest: (Long) -> Unit,
-    onNavigateToFlashcards: (Long) -> Unit
+    onNavigateToFlashcards: (Long) -> Unit,
+    onNavigateToResolveContestQuestions: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -141,7 +135,7 @@ fun ContestDetailScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                             
                             Button(
                                 onClick = { showInfoBottomSheet = true },
@@ -159,6 +153,27 @@ fun ContestDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Info Prova", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Button(
+                                onClick = {
+                                    viewModel.generateMockExam {
+                                        contest?.let { onNavigateToResolveContestQuestions(it.id) }
+                                    }
+                                },
+                                enabled = !uiState.isGeneratingMock,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Assignment,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Gerar Simulado do Edital", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                             }
                         }
                     }
@@ -476,6 +491,37 @@ fun ContestDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    if (uiState.isGeneratingMock) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Gerando Simulado Completo") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        strokeWidth = 4.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LinearProgressIndicator(
+                        progress = { uiState.mockGenerationProgress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.mockGenerationStatus,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {}
+        )
     }
 }
 

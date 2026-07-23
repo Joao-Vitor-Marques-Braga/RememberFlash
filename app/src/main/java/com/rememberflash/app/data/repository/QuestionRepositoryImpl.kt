@@ -55,4 +55,14 @@ class QuestionRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
     }
+
+    override suspend fun getQuestionById(questionId: Long): Result<Question> {
+        return try {
+            val entity = questionDao.getById(questionId)
+                ?: return Result.error("Questão não encontrada")
+            Result.success(entity.toDomain())
+        } catch (e: Exception) {
+            Result.error("Falha ao recuperar questão: ${e.localizedMessage}", e)
+        }
+    }
 }

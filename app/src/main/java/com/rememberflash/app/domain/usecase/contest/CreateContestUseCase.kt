@@ -124,11 +124,12 @@ class CreateContestUseCase @Inject constructor(
                 
                 if (!discList.isNullOrEmpty()) {
                     // Insere as disciplinas extraídas em cascata
-                    discList.forEach { name ->
+                    discList.forEach { parsedDisc ->
                         disciplineRepository.insert(
                             Discipline(
                                 contestId = contestId,
-                                name = name
+                                name = parsedDisc.name,
+                                weight = parsedDisc.weight ?: 10.0
                             )
                         )
                     }
@@ -167,6 +168,11 @@ class CreateContestUseCase @Inject constructor(
         }
     }
 
+    private data class ParsedDiscipline(
+        val name: String,
+        val weight: Double? = null
+    )
+
     private data class ParsedEdital(
         val title: String? = null,
         val organizer: String? = null,
@@ -176,6 +182,6 @@ class CreateContestUseCase @Inject constructor(
         val allowedPen: String? = null,
         val allowedItems: List<String>? = null,
         val prohibitedItems: List<String>? = null,
-        val disciplines: List<String>? = null
+        val disciplines: List<ParsedDiscipline>? = null
     )
 }

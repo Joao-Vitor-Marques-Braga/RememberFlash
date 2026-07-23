@@ -8,10 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,7 +28,8 @@ import com.rememberflash.app.presentation.theme.SuccessGreen
 fun EssayResultScreen(
     viewModel: EssayResultViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onNavigateToTutorChat: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -231,8 +229,24 @@ fun EssayResultScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
                     }
+
+                    OutlinedButton(
+                        onClick = {
+                            essay?.let { onNavigateToTutorChat(it.id) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.QuestionAnswer, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Dúvidas? Pergunte ao Tutor")
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Botão voltar para Home
                     Button(

@@ -104,6 +104,9 @@ dependencies {
     // ML Kit — Text Recognition (OCR local)
     implementation(libs.mlkit.text.recognition)
 
+    // PDFBox para Android (Extração de texto local robusta)
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
     // Gson (TypeConverters do Room)
     implementation(libs.gson)
 

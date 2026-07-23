@@ -24,4 +24,7 @@ interface QuestionDao {
 
     @Query("SELECT * FROM questions")
     fun getAllQuestions(): Flow<List<QuestionEntity>>
+
+    @Query("SELECT * FROM questions WHERE id = :questionId LIMIT 1")
+    suspend fun getById(questionId: Long): QuestionEntity?
 }

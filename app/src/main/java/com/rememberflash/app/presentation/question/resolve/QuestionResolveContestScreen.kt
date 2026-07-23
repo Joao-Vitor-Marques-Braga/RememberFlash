@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,13 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.rememberflash.app.domain.model.Question
 import com.rememberflash.app.presentation.theme.SuccessGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuestionResolveScreen(
-    viewModel: QuestionResolveViewModel = hiltViewModel(),
+fun QuestionResolveContestScreen(
+    viewModel: QuestionResolveContestViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToTutorChat: (Long) -> Unit
 ) {
@@ -35,13 +35,19 @@ fun QuestionResolveScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Simulado: ${uiState.disciplineName}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = { Text(uiState.contestTitle, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar"
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
     ) { paddingValues ->
@@ -52,32 +58,39 @@ fun QuestionResolveScreen(
                 .padding(paddingValues)
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.error != null) {
+                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = uiState.error ?: "Erro desconhecido.",
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else if (uiState.questions.isEmpty()) {
-                Text(
-                    text = "Nenhuma questão encontrada para este simulado.",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(32.dp)
-                )
+                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Nenhuma questão encontrada para este simulado.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else if (uiState.isFinished) {
-                // TELA DE RESULTADO FINAL
+                // TELA DE RESULTADO DO SIMULADO COMPLETO
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
                         Column(
                             modifier = Modifier
@@ -85,6 +98,15 @@ fun QuestionResolveScreen(
                                 .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = SuccessGreen,
+                                modifier = Modifier.size(64.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             Text(
                                 text = "Simulado Finalizado!",
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -128,13 +150,14 @@ fun QuestionResolveScreen(
                             .height(55.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Voltar para Matéria", fontWeight = FontWeight.Bold)
+                        Text("Voltar para Concurso", fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
-                // RESOLVENDO QUESTÕES
+                // RESOLVENDO QUESTÕES DO SIMULADO
                 val currentIndex = uiState.currentIndex
-                val question = uiState.questions[currentIndex]
+                val item = uiState.questions[currentIndex]
+                val question = item.question
                 val selectedIndex = uiState.selectedAnswers[currentIndex]
                 val hasSubmitted = uiState.submittedAnswers.contains(currentIndex)
 
@@ -142,9 +165,16 @@ fun QuestionResolveScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(16.dp)
+                        .padding(horizontal = 24.dp)
                 ) {
-                    // Header progress
+                    // Indicador de Progresso
+                    LinearProgressIndicator(
+                        progress = { (currentIndex.toFloat() + 1) / uiState.questions.size.toFloat() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -153,137 +183,105 @@ fun QuestionResolveScreen(
                         Text(
                             text = "Questão ${currentIndex + 1} de ${uiState.questions.size}",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
-                        LinearProgressIndicator(
-                            progress = (currentIndex + 1).toFloat() / uiState.questions.size.toFloat(),
-                            modifier = Modifier
-                                .width(120.dp)
-                                .height(6.dp),
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Text(
+                                text = item.disciplineName,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Enunciado
                     Text(
                         text = question.statement,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        lineHeight = MaterialTheme.typography.titleMedium.lineHeight * 1.25f,
-                        modifier = Modifier.fillMaxWidth()
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Alternativas
-                    question.options.forEachIndexed { index, option ->
-                        val letter = ('A' + index)
-                        val isSelected = selectedIndex == index
+                    question.options.forEachIndexed { optionIndex, optionText ->
+                        val isSelected = selectedIndex == optionIndex
                         
-                        // Decide cores do card com base no estado de submissão
-                        val borderStroke = if (hasSubmitted) {
-                            if (index == question.correctIndex) {
-                                BorderStroke(2.dp, SuccessGreen)
-                            } else if (isSelected) {
-                                BorderStroke(2.dp, MaterialTheme.colorScheme.error)
-                            } else {
-                                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                            }
-                        } else if (isSelected) {
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                        } else {
-                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        val containerColor = when {
+                            hasSubmitted && optionIndex == question.correctIndex -> SuccessGreen.copy(alpha = 0.15f)
+                            hasSubmitted && isSelected && selectedIndex != question.correctIndex -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                            isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else -> MaterialTheme.colorScheme.surface
                         }
 
-                        val containerColor = if (hasSubmitted) {
-                            if (index == question.correctIndex) {
-                                SuccessGreen.copy(alpha = 0.1f)
-                            } else if (isSelected) {
-                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            }
-                        } else if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
+                        val borderColor = when {
+                            hasSubmitted && optionIndex == question.correctIndex -> SuccessGreen
+                            hasSubmitted && isSelected && selectedIndex != question.correctIndex -> MaterialTheme.colorScheme.error
+                            isSelected -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         }
 
-                        Card(
+                        val borderWidth = if (isSelected || (hasSubmitted && optionIndex == question.correctIndex)) 2.dp else 1.dp
+
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp)
-                                .clickable(enabled = !hasSubmitted) { viewModel.selectOption(index) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = containerColor),
-                            border = borderStroke
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .background(
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                            shape = RoundedCornerShape(8.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = letter.toString(),
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(16.dp))
-
-                                Text(
-                                    text = option,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
+                                .border(
+                                    BorderStroke(borderWidth, borderColor),
+                                    shape = RoundedCornerShape(12.dp)
                                 )
-                            }
+                                .background(containerColor, shape = RoundedCornerShape(12.dp))
+                                .clickable(enabled = !hasSubmitted) {
+                                    viewModel.selectOption(optionIndex)
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { if (!hasSubmitted) viewModel.selectOption(optionIndex) },
+                                enabled = !hasSubmitted,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Text(
+                                text = optionText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Bloco de Justificativa após responder
+                    // Justificativa e Feedback do Tutor (após submeter)
                     if (hasSubmitted) {
                         val chosenIsCorrect = selectedIndex == question.correctIndex
+                        val feedbackTitle = if (chosenIsCorrect) "Você acertou!" else "Você errou."
                         val feedbackColor = if (chosenIsCorrect) SuccessGreen else MaterialTheme.colorScheme.error
-                        val feedbackIcon = if (chosenIsCorrect) Icons.Default.CheckCircle else Icons.Default.Error
-                        val feedbackTitle = if (chosenIsCorrect) "Você acertou!" else "Você errou!"
 
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 24.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = feedbackColor.copy(alpha = 0.08f)),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = feedbackColor.copy(alpha = 0.05f)),
                             border = BorderStroke(1.dp, feedbackColor.copy(alpha = 0.3f))
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = feedbackIcon,
+                                        imageVector = if (chosenIsCorrect) Icons.Default.CheckCircle else Icons.Default.Error,
                                         contentDescription = null,
-                                        tint = feedbackColor,
-                                        modifier = Modifier.size(24.dp)
+                                        tint = feedbackColor
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
@@ -320,25 +318,25 @@ fun QuestionResolveScreen(
                                     )
                                 }
 
-                                if (hasSubmitted) {
-                                    OutlinedButton(
-                                        onClick = { onNavigateToTutorChat(question.id) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 16.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.QuestionAnswer, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Dúvidas? Pergunte ao Tutor")
-                                    }
+                                OutlinedButton(
+                                    onClick = { onNavigateToTutorChat(question.id) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 16.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.QuestionAnswer, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Dúvidas? Pergunte ao Tutor")
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Botões de Navegação Inferiores
                     Row(
@@ -355,23 +353,21 @@ fun QuestionResolveScreen(
                             Text("Anterior", fontWeight = FontWeight.Bold)
                         }
 
-                        if (hasSubmitted) {
-                            Button(
-                                onClick = viewModel::nextQuestion,
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = if (currentIndex == uiState.questions.size - 1) "Ver Resultado" else "Próxima",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        } else {
+                        if (!hasSubmitted) {
                             Button(
                                 onClick = viewModel::submitAnswer,
                                 enabled = selectedIndex != null,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Responder", fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = viewModel::nextQuestion,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                val btnText = if (currentIndex == uiState.questions.size - 1) "Finalizar" else "Próxima"
+                                Text(btnText, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

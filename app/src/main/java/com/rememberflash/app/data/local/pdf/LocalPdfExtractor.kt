@@ -2,41 +2,28 @@ package com.rememberflash.app.data.local.pdf
 
 import android.content.Context
 import android.net.Uri
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 
 object LocalPdfExtractor {
     
     fun extractText(context: Context, uri: Uri): String {
         return try {
+            // Inicializa recursos do PDFBox
+            PDFBoxResourceLoader.init(context)
+            
             val inputStream = context.contentResolver.openInputStream(uri) ?: return ""
-            val bytes = inputStream.readBytes()
+            val document = PDDocument.load(inputStream)
+            val stripper = PDFTextStripper()
+            val text = stripper.getText(document)
+            
+            document.close()
             inputStream.close()
             
-            val textBuilder = StringBuilder()
-            var i = 0
-            val len = bytes.size
-            while (i < len - 4) {
-                if (bytes[i] == '('.code.toByte()) {
-                    val start = i + 1
-                    var end = start
-                    while (end < len && bytes[end] != ')'.code.toByte()) {
-                        end++
-                    }
-                    if (end < len) {
-                        val strBytes = bytes.copyOfRange(start, end)
-                        val str = String(strBytes, Charsets.ISO_8859_1).trim()
-                        // Filtra para manter somente blocos de texto razoavelmente legíveis
-                        if (str.length > 2 && str.all { it.isLetterOrDigit() || it.isWhitespace() || it in ",.-;:_!?=+-/*@#()[]{}'\"" }) {
-                            textBuilder.append(str).append(" ")
-                        }
-                    }
-                    i = end + 1
-                } else {
-                    i++
-                }
-            }
-            textBuilder.toString().trim()
+            text.trim()
         } catch (e: Exception) {
-            android.util.Log.e("LocalPdfExtractor", "Falha ao extrair texto local do PDF", e)
+            android.util.Log.e("LocalPdfExtractor", "Falha ao extrair texto local do PDF com PDFBox", e)
             ""
         }
     }

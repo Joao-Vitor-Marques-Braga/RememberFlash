@@ -170,7 +170,10 @@ object PromptTemplates {
         |$syllabus
         |
         |### INSTRUÇÕES DE RETORNO:
-        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou texto adicional:
+        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou texto adicional.
+        |
+        |Atenção especial para as disciplinas: tente identificar no edital (geralmente nas tabelas de provas/questões ou regras) o peso ou a quantidade correta de questões de cada disciplina na prova real. Caso não esteja explícito, use um valor proporcional (ex: 10 para disciplinas principais, 5 para básicas).
+        |
         |{
         |  "title": "Nome simplificado do concurso (Ex: INSS, Banco do Brasil, Polícia Federal)",
         |  "organizer": "Nome da banca organizadora (Ex: CESPE, FCC, FGV)",
@@ -180,7 +183,47 @@ object PromptTemplates {
         |  "allowedPen": "Especificação da caneta permitida (cor e tipo de tubo)",
         |  "allowedItems": ["item 1", "item 2"],
         |  "prohibitedItems": ["item 1", "item 2"],
-        |  "disciplines": ["Disciplina A", "Disciplina B"]
+        |  "disciplines": [
+        |    {
+        |      "name": "Nome da disciplina (Ex: Língua Portuguesa)",
+        |      "weight": <número de questões ou peso do edital (Ex: 10.0 ou 15.0)>
+        |    }
+        |  ]
         |}
     """.trimMargin()
+
+    fun buildTutorChatPrompt(
+        contextType: String,
+        contextDetails: String,
+        tone: String,
+        history: List<Pair<String, String>>,
+        latestMessage: String
+    ): String {
+        val historyBlock = history.joinToString("\n") { (user, tutor) ->
+            "Estudante: $user\nTutor: $tutor"
+        }
+        
+        return """
+            |Você é um Tutor Particular de Estudos 1:1, especialista em concursos públicos brasileiros.
+            |Seu objetivo é sanar dúvidas específicas sobre uma questão recém-respondida ou sobre o feedback de uma redação do estudante.
+            |
+            |REGRAS DO TUTOR:
+            |1. Tom do Tutor Interativo: $tone.
+            |   - Se for 'Direto/Objetivo', seja curto, claro e direto ao ponto na explicação.
+            |   - Se for 'Explicativo/Detalhado', explique didaticamente, se aprofundando nos conceitos e trazendo exemplos práticos.
+            |2. LIMITE DE ESCOPO (Fuga de Escopo - A1):
+            |   - Você deve responder APENAS dúvidas relacionadas diretamente ao assunto da questão/redação fornecida abaixo.
+            |   - Se o estudante fizer perguntas gerais de outro assunto, fora do escopo educacional da questão/redação ou tentar desviar o assunto (ex: pedir receitas, programar código não relacionado, piadas, papo furado), você deve recusar de forma simpática, respondendo exatamente:
+            |     "Como seu tutor de estudos, meu foco é ajudar você com o concurso. Vamos voltar à dúvida sobre o conteúdo."
+            |
+            |CONTEXTO ATIVO DE ESTUDO (TIPO: $contextType):
+            |$contextDetails
+            |
+            |HISTÓRICO DA CONVERSA:
+            |$historyBlock
+            |
+            |Estudante: $latestMessage
+            |Tutor:
+        """.trimMargin()
+    }
 }

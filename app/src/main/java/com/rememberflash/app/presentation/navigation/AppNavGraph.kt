@@ -21,8 +21,10 @@ import com.rememberflash.app.presentation.contest.detail.ContestDetailScreen
 import com.rememberflash.app.presentation.settings.SettingsScreen
 import com.rememberflash.app.presentation.discipline.DisciplineScreen
 import com.rememberflash.app.presentation.question.resolve.QuestionResolveScreen
+import com.rememberflash.app.presentation.question.resolve.QuestionResolveContestScreen
 import com.rememberflash.app.presentation.essay.capture.EssayCaptureScreen
 import com.rememberflash.app.presentation.essay.result.EssayResultScreen
+import com.rememberflash.app.presentation.tutor.TutorChatScreen
 
 /**
  * Rotas de navegação do RememberFlash.
@@ -45,6 +47,8 @@ object Routes {
     const val SCHEDULE = "schedule/{contestId}"
     const val SETTINGS = "settings"
     const val QUESTION_RESOLVE = "question_resolve/{disciplineId}"
+    const val TUTOR_CHAT = "tutor_chat/{type}/{id}"
+    const val QUESTION_RESOLVE_CONTEST = "question_resolve_contest/{contestId}"
 
     fun contestDetail(contestId: Long) = "contest_detail/$contestId"
     fun contestForm(contestId: Long? = null) = if (contestId != null) "contest_form?contestId=$contestId" else "contest_form"
@@ -54,6 +58,8 @@ object Routes {
     fun schedule(contestId: Long) = "schedule/$contestId"
     fun resetPassword(email: String) = "reset_password/$email"
     fun questionResolve(disciplineId: Long) = "question_resolve/$disciplineId"
+    fun tutorChat(type: String, id: Long) = "tutor_chat/$type/$id"
+    fun questionResolveContest(contestId: Long) = "question_resolve_contest/$contestId"
 }
 
 @Composable
@@ -173,6 +179,9 @@ fun AppNavGraph(
                 },
                 onNavigateToFlashcards = { disciplineId ->
                     navController.navigate(Routes.flashcardDeck(disciplineId))
+                },
+                onNavigateToResolveContestQuestions = { contestId ->
+                    navController.navigate(Routes.questionResolveContest(contestId))
                 }
             )
         }
@@ -206,6 +215,25 @@ fun AppNavGraph(
             QuestionResolveScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToTutorChat = { questionId ->
+                    navController.navigate(Routes.tutorChat("question", questionId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.QUESTION_RESOLVE_CONTEST,
+            arguments = listOf(androidx.navigation.navArgument("contestId") {
+                type = androidx.navigation.NavType.LongType
+            })
+        ) {
+            QuestionResolveContestScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToTutorChat = { questionId ->
+                    navController.navigate(Routes.tutorChat("question", questionId))
                 }
             )
         }
@@ -235,6 +263,27 @@ fun AppNavGraph(
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
+                },
+                onNavigateToTutorChat = { essayId ->
+                    navController.navigate(Routes.tutorChat("essay", essayId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.TUTOR_CHAT,
+            arguments = listOf(
+                androidx.navigation.navArgument("type") {
+                    type = androidx.navigation.NavType.StringType
+                },
+                androidx.navigation.navArgument("id") {
+                    type = androidx.navigation.NavType.LongType
+                }
+            )
+        ) {
+            TutorChatScreen(
+                onCloseChat = {
+                    navController.popBackStack()
                 }
             )
         }

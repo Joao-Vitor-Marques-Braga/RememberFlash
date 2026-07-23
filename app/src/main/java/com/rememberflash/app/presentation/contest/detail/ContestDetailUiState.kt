@@ -8,5 +8,8 @@ data class ContestDetailUiState(
     val contest: Contest? = null,
     val disciplines: List<Discipline> = emptyList(),
     val error: String? = null,
-    val disciplineNameError: String? = null
+    val disciplineNameError: String? = null,
+    val isGeneratingMock: Boolean = false,
+    val mockGenerationProgress: Float = 0f,
+    val mockGenerationStatus: String = ""
 )

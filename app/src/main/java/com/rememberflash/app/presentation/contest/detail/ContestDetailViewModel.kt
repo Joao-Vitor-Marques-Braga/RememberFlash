@@ -10,6 +10,7 @@ import com.rememberflash.app.domain.usecase.discipline.CreateDisciplineUseCase
 import com.rememberflash.app.domain.usecase.discipline.DeleteDisciplineUseCase
 import com.rememberflash.app.domain.usecase.discipline.GetDisciplinesByContestUseCase
 import com.rememberflash.app.domain.usecase.discipline.UpdateDisciplineUseCase
+import com.rememberflash.app.domain.usecase.question.GenerateContestMockExamUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,8 @@ class ContestDetailViewModel @Inject constructor(
     private val getDisciplinesByContestUseCase: GetDisciplinesByContestUseCase,
     private val createDisciplineUseCase: CreateDisciplineUseCase,
     private val updateDisciplineUseCase: UpdateDisciplineUseCase,
-    private val deleteDisciplineUseCase: DeleteDisciplineUseCase
+    private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
+    private val generateContestMockExamUseCase: GenerateContestMockExamUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestDetailUiState())
@@ -146,6 +148,39 @@ class ContestDetailViewModel @Inject constructor(
                         isLoading = false,
                         error = result.message
                     )
+                }
+                else -> {}
+            }
+        }
+    }
+
+    fun generateMockExam(onFinished: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isGeneratingMock = true,
+                mockGenerationProgress = 0f,
+                mockGenerationStatus = "Iniciando geração..."
+            )
+            
+            val result = generateContestMockExamUseCase(
+                contestId = contestId,
+                onProgress = { current, total, disciplineName ->
+                    val progress = current.toFloat() / total.toFloat()
+                    _uiState.value = _uiState.value.copy(
+                        mockGenerationProgress = progress,
+                        mockGenerationStatus = "Gerando questões para $disciplineName ($current/$total)..."
+                    )
+                }
+            )
+            
+            _uiState.value = _uiState.value.copy(isGeneratingMock = false)
+            
+            when (result) {
+                is Result.Success -> {
+                    onFinished()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(error = result.message)
                 }
                 else -> {}
             }

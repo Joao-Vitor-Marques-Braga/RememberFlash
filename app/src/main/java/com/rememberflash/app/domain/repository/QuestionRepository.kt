@@ -10,4 +10,5 @@ interface QuestionRepository {
     suspend fun clearQuestionsByDiscipline(disciplineId: Long): Result<Unit>
     suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit>
     fun getAllQuestions(): Flow<List<Question>>
+    suspend fun getQuestionById(questionId: Long): Result<Question>
 }
