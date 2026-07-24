@@ -31,7 +31,8 @@ fun ContestDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditContest: (Long) -> Unit,
     onNavigateToFlashcards: (Long) -> Unit,
-    onNavigateToResolveContestQuestions: (Long) -> Unit
+    onNavigateToResolveContestQuestions: (Long) -> Unit,
+    onNavigateToSchedule: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -45,6 +46,7 @@ fun ContestDetailScreen(
 
     var expandedMenuDisciplineId by remember { mutableStateOf<Long?>(null) }
     var showInfoBottomSheet by remember { mutableStateOf(false) }
+    var showLogDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -137,22 +139,45 @@ fun ContestDetailScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
                             
-                            Button(
-                                onClick = { showInfoBottomSheet = true },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Info Prova", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                Button(
+                                    onClick = { showInfoBottomSheet = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Info Prova", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                }
+
+                                Button(
+                                    onClick = { showLogDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Description,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Log Cadastro", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -174,6 +199,28 @@ fun ContestDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Gerar Simulado do Edital", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Button(
+                                onClick = {
+                                    contest?.let { onNavigateToSchedule(it.id) }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cronograma de Estudos", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                             }
                         }
                     }
@@ -521,6 +568,31 @@ fun ContestDetailScreen(
                 }
             },
             confirmButton = {}
+        )
+    }
+
+    if (showLogDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogDialog = false },
+            title = { Text("Log de Extração (IA)", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = uiState.contest?.description?.ifBlank { "Nenhum log de cadastro disponível." }
+                            ?: "Nenhum log de cadastro disponível.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLogDialog = false }) {
+                    Text("Fechar", fontWeight = FontWeight.Bold)
+                }
+            }
         )
     }
 }

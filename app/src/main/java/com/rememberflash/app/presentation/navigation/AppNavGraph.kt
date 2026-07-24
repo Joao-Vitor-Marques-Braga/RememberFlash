@@ -25,6 +25,7 @@ import com.rememberflash.app.presentation.question.resolve.QuestionResolveContes
 import com.rememberflash.app.presentation.essay.capture.EssayCaptureScreen
 import com.rememberflash.app.presentation.essay.result.EssayResultScreen
 import com.rememberflash.app.presentation.tutor.TutorChatScreen
+import com.rememberflash.app.presentation.schedule.ScheduleScreen
 
 /**
  * Rotas de navegação do RememberFlash.
@@ -182,6 +183,9 @@ fun AppNavGraph(
                 },
                 onNavigateToResolveContestQuestions = { contestId ->
                     navController.navigate(Routes.questionResolveContest(contestId))
+                },
+                onNavigateToSchedule = { contestId ->
+                    navController.navigate(Routes.schedule(contestId))
                 }
             )
         }
@@ -288,8 +292,17 @@ fun AppNavGraph(
             )
         }
 
-        composable(Routes.SCHEDULE) {
-            PlaceholderScreen(title = "Cronograma")
+        composable(
+            route = Routes.SCHEDULE,
+            arguments = listOf(androidx.navigation.navArgument("contestId") {
+                type = androidx.navigation.NavType.LongType
+            })
+        ) {
+            ScheduleScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(Routes.SETTINGS) {

@@ -16,16 +16,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class PdfAttachment(
+    val uri: String,
+    val name: String
+)
+
 data class ContestFormUiState(
     val id: Long? = null,
     val title: String = "",
     val organizerName: String = "",
     val questionType: String = "Múltipla Escolha",
-    val syllabusPdfUri: String? = null,
-    val pdfFileName: String? = null,
+    val pdfAttachments: List<PdfAttachment> = emptyList(),
+    val jobPosition: String = "",
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val savingStep: String = ""
 )
 
 @HiltViewModel
@@ -53,13 +59,26 @@ class ContestFormViewModel @Inject constructor(
             when (val result = getContestByIdUseCase(id)) {
                 is Result.Success -> {
                     val contest = result.data
+                    val attachments = contest.syllabusPdfUri?.split("|")
+                        ?.filter { it.isNotBlank() }
+                        ?.map { uriStr ->
+                            val decodedUri = android.net.Uri.parse(uriStr)
+                            val name = decodedUri.lastPathSegment ?: "anexo.pdf"
+                            PdfAttachment(uriStr, name)
+                        } ?: emptyList()
+
+                    val jobFromDesc = if (contest.description.startsWith("Cargo: ")) {
+                        contest.description.substringAfter("Cargo: ").substringBefore("\n\n").trim()
+                    } else {
+                        ""
+                    }
                     _uiState.value = _uiState.value.copy(
                         id = contest.id,
                         title = contest.title,
                         organizerName = contest.organizerName,
                         questionType = contest.questionType,
-                        syllabusPdfUri = contest.syllabusPdfUri,
-                        pdfFileName = contest.syllabusPdfUri?.substringAfterLast("/"), // mock name display
+                        pdfAttachments = attachments,
+                        jobPosition = jobFromDesc,
                         isLoading = false
                     )
                 }
@@ -82,25 +101,44 @@ class ContestFormViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(organizerName = organizer, error = null)
     }
 
+    fun onJobPositionChanged(position: String) {
+        _uiState.value = _uiState.value.copy(jobPosition = position, error = null)
+    }
+
     fun onQuestionTypeChanged(type: String) {
         _uiState.value = _uiState.value.copy(questionType = type)
     }
 
-    fun onPdfSelected(uri: String, name: String) {
+    fun addPdfAttachment(uri: String, name: String) {
+        val current = _uiState.value.pdfAttachments.toMutableList()
+        if (current.none { it.uri == uri }) {
+            current.add(PdfAttachment(uri, name))
+            _uiState.value = _uiState.value.copy(
+                pdfAttachments = current,
+                error = null
+            )
+        }
+    }
+
+    fun removePdfAttachment(uri: String) {
+        val current = _uiState.value.pdfAttachments.filter { it.uri != uri }
         _uiState.value = _uiState.value.copy(
-            syllabusPdfUri = uri,
-            pdfFileName = name,
+            pdfAttachments = current,
             error = null
         )
     }
 
-    fun onPdfError(errorMsg: String) {
+    fun onPdfError(errorMsg: String?) {
         _uiState.value = _uiState.value.copy(error = errorMsg)
     }
 
     fun onSaveClicked() {
         val state = _uiState.value
-        if ((state.title.isBlank() || state.organizerName.isBlank()) && state.syllabusPdfUri.isNullOrBlank()) {
+        if (state.pdfAttachments.isNotEmpty() && state.jobPosition.isBlank()) {
+            _uiState.value = _uiState.value.copy(error = "Informe o cargo pretendido para podermos extrair as disciplinas corretas do edital.")
+            return
+        }
+        if ((state.title.isBlank() || state.organizerName.isBlank()) && state.pdfAttachments.isEmpty()) {
             _uiState.value = _uiState.value.copy(error = "Preencha o título e a banca examinadora, ou selecione um edital para preenchimento automático.")
             return
         }
@@ -115,17 +153,26 @@ class ContestFormViewModel @Inject constructor(
             }
             val userId = sessionResult.data.id
 
+            val syllabusPdfUriMerged = if (state.pdfAttachments.isNotEmpty()) {
+                state.pdfAttachments.joinToString("|") { it.uri }
+            } else {
+                null
+            }
+
             val contest = Contest(
                 id = state.id ?: 0L,
                 userId = userId,
                 title = state.title,
+                description = "Cargo: ${state.jobPosition}",
                 organizerName = state.organizerName,
                 questionType = state.questionType,
-                syllabusPdfUri = state.syllabusPdfUri
+                syllabusPdfUri = syllabusPdfUriMerged
             )
 
             val result = if (state.id == null) {
-                createContestUseCase(contest)
+                createContestUseCase(contest) { step ->
+                    _uiState.value = _uiState.value.copy(savingStep = step)
+                }
             } else {
                 updateContestUseCase(contest)
             }

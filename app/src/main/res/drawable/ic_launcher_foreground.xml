@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Margem e Centralização do Logo (Área de Segurança de 72dp) -->
+    <!-- Um livro estilizado e um raio central -->
+    <group
+        android:translateX="18"
+        android:translateY="18">
+
+        <!-- Lado esquerdo do livro (azul/roxo vibrante) -->
+        <path
+            android:fillColor="#8A2BE2"
+            android:pathData="M 36,45 C 30,39 12,39 6,42 L 6,15 C 12,12 30,12 36,18 Z" />
+
+        <!-- Lado direito do livro (azul/roxo vibrante) -->
+        <path
+            android:fillColor="#9370DB"
+            android:pathData="M 36,45 C 42,39 60,39 66,42 L 66,15 C 60,12 42,12 36,18 Z" />
+
+        <!-- Raio brilhante dourado cortando o centro (representando o "Flash" e a velocidade de memorização) -->
+        <!-- Cores: Amarelo Dourado FFD700 / FF8C00 -->
+        <path
+            android:fillColor="#FFD700"
+            android:pathData="M 38,10 L 26,32 L 36,32 L 30,58 L 48,30 L 38,30 Z" />
+
+        <!-- Brilho extra ou reflexo no raio -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:fillAlpha="0.4"
+            android:pathData="M 38,10 L 33,30 L 36,32 L 30,58 L 33,52 L 38,30 Z" />
+    </group>
+</vector>

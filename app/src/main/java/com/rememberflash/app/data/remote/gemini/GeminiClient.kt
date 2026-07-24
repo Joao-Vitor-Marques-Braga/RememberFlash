@@ -87,12 +87,17 @@ class GeminiClient @Inject constructor(
         return generateContent(prompt)
     }
 
-    suspend fun parseSyllabusAndRules(
-        header: String,
-        rules: String,
-        syllabus: String
+    suspend fun parseFullEditalText(
+        editalText: String,
+        jobPosition: String
     ): String {
-        val prompt = PromptTemplates.buildSyllabusAndRulesParsingPrompt(header, rules, syllabus)
+        val prompt = PromptTemplates.buildFullEditalParsingPrompt(editalText, jobPosition)
+        return generateContent(prompt)
+    }
+
+    suspend fun generateStudySchedule(
+        prompt: String
+    ): String {
         return generateContent(prompt)
     }
 

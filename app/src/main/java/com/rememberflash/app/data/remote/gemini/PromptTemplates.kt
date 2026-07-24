@@ -153,26 +153,32 @@ object PromptTemplates {
         |Atenção: Se o formato for Certo/Errado, a lista "options" deve conter exatamente duas strings: ["Certo", "Errado"]. O "correctIndex" será 0 para Certo e 1 para Errado.
     """.trimMargin()
 
-    fun buildSyllabusAndRulesParsingPrompt(
-        header: String,
-        rules: String,
-        syllabus: String
+    fun buildFullEditalParsingPrompt(
+        editalText: String,
+        jobPosition: String
     ): String = """
-        |Analise os recortes de texto do edital abaixo e retorne APENAS um objeto JSON estruturado.
+        |Você é um assistente especialista em concursos públicos brasileiros.
+        |Analise o texto completo do edital (e anexos) fornecido abaixo focado especificamente no cargo: $jobPosition.
+        |Retorne APENAS um objeto JSON estruturado.
         |
-        |### TEXTO DE CABEÇALHO DO EDITAL:
-        |$header
+        |### CARGO DE INTERESSE:
+        |$jobPosition
         |
-        |### TEXTO DE REGRAS E PROIBIÇÕES:
-        |$rules
-        |
-        |### CONTEÚDO PROGRAMÁTICO DO CARGO:
-        |$syllabus
+        |### CONTEXTO DO EDITAL (TEXTO COMPLETO EXTRAÍDO):
+        |$editalText
         |
         |### INSTRUÇÕES DE RETORNO:
-        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou texto adicional.
+        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou qualquer outro texto adicional.
         |
-        |Atenção especial para as disciplinas: tente identificar no edital (geralmente nas tabelas de provas/questões ou regras) o peso ou a quantidade correta de questões de cada disciplina na prova real. Caso não esteja explícito, use um valor proporcional (ex: 10 para disciplinas principais, 5 para básicas).
+        |Identifique no texto:
+        |1. Nome simplificado do concurso (Ex: INSS, Banco do Brasil, Polícia Federal).
+        |2. Nome da banca organizadora (Ex: CEBRASPE, FCC, FGV).
+        |3. Formato da prova (Certo/Errado ou Múltipla Escolha).
+        |4. Data da prova escrita em formato DD/MM/AAAA (ou null se não encontrada).
+        |5. Locais de aplicação da prova.
+        |6. Especificação da caneta permitida (cor da tinta e material do tubo).
+        |7. Lista de itens permitidos e proibidos de portar/levar.
+        |8. O conjunto completo de disciplinas exigidas no conteúdo programático EXCLUSIVAMENTE para o cargo de "$jobPosition". Tente identificar o número de questões ou peso de cada disciplina para este cargo. Se não estiver explícito, atribua um valor proporcional adequado (ex: 10 para as mais importantes, 5 para as básicas).
         |
         |{
         |  "title": "Nome simplificado do concurso (Ex: INSS, Banco do Brasil, Polícia Federal)",
@@ -226,4 +232,48 @@ object PromptTemplates {
             |Tutor:
         """.trimMargin()
     }
+
+    fun buildStudySchedulePrompt(
+        contestTitle: String,
+        disciplines: List<Pair<String, Double>>,
+        startDateStr: String,
+        endDateStr: String,
+        minutesPerDay: Int,
+        maxSubjectsPerDay: Int,
+        availableDaysOfWeek: List<String>
+    ): String = """
+        |Você é um assistente especialista em planejar rotinas de estudo de alta performance.
+        |Gere um cronograma de estudos personalizado para o concurso: "$contestTitle".
+        |
+        |### PARÂMETROS DE ENTRADA:
+        |- Data de Início: $startDateStr
+        |- Data da Prova: $endDateStr
+        |- Minutos disponíveis por dia: $minutesPerDay minutos
+        |- Máximo de matérias por dia: $maxSubjectsPerDay matérias
+        |- Dias da semana disponíveis para estudo: ${availableDaysOfWeek.joinToString(", ")}
+        |
+        |### DISCIPLINAS E PESOS DO EDITAL:
+        |${disciplines.joinToString("\n") { (name, weight) -> "- $name (Peso/Importância: $weight)" }}
+        |
+        |### REGRAS DE DISTRIBUIÇÃO:
+        |1. Distribua as matérias proporcionalmente entre a data de início e a data da prova. Matérias com maior peso/importância devem receber mais tempo de estudo ou sessões mais frequentes.
+        |2. Programe sessões APENAS nos dias da semana especificados como disponíveis. Nos outros dias, não agende nenhuma sessão (deixe como descanso).
+        |3. O tempo total alocado em um único dia não pode ultrapassar $minutesPerDay minutos.
+        |4. Não agende mais de $maxSubjectsPerDay matérias diferentes no mesmo dia.
+        |5. Caso o tempo total até a prova seja insuficiente para cobrir todo o conteúdo programático (conforme peso das disciplinas e tempo disponível), preencha o campo "warning" com a mensagem: "O tempo selecionado é insuficiente para cobrir todas as matérias até a data da prova. O cronograma foi montado focando apenas nos tópicos de maior peso." E faça a distribuição resumida focando nas disciplinas de maior importância.
+        |
+        |### FORMATO DE RETORNO:
+        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem tags de marcação (como ```json) ou qualquer outro texto adicional.
+        |
+        |{
+        |  "warning": "Mensagem de alerta caso o tempo seja insuficiente, ou null",
+        |  "sessions": [
+        |    {
+        |      "date": "YYYY-MM-DD",
+        |      "disciplineName": "Nome exato da disciplina da lista fornecida",
+        |      "minutes": <minutos de estudo alocados para este dia (Ex: 60)>
+        |    }
+        |  ]
+        |}
+    """.trimMargin()
 }

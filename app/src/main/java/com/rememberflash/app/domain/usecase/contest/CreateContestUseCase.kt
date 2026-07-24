@@ -3,6 +3,7 @@ package com.rememberflash.app.domain.usecase.contest
 import android.content.Context
 import android.net.Uri
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.rememberflash.app.data.local.pdf.LocalPdfExtractor
 import com.rememberflash.app.data.remote.gemini.GeminiClient
@@ -22,12 +23,21 @@ class CreateContestUseCase @Inject constructor(
 ) {
     private val gson = Gson()
 
-    suspend operator fun invoke(contest: Contest): Result<Long> {
+    suspend operator fun invoke(
+        contest: Contest,
+        onProgress: (String) -> Unit
+    ): Result<Long> {
         val now = System.currentTimeMillis()
         val pdfUriStr = contest.syllabusPdfUri
+        val jobPosition = if (contest.description.startsWith("Cargo: ")) {
+            contest.description.substringAfter("Cargo: ").substringBefore("\n\n").trim()
+        } else {
+            "Geral"
+        }
 
         // Se não houver PDF anexado, apenas insere o concurso normalmente
         if (pdfUriStr.isNullOrBlank()) {
+            onProgress("Salvando concurso no banco...")
             val titleToSave = contest.title.ifBlank { "Novo Concurso" }
             val contestToInsert = contest.copy(
                 title = titleToSave,
@@ -46,40 +56,36 @@ class CreateContestUseCase @Inject constructor(
         }
 
         return try {
-            // 1. Extração de texto 100% local
-            val pdfUri = Uri.parse(pdfUriStr)
-            val rawText = LocalPdfExtractor.extractText(context, pdfUri)
+            onProgress("Lendo e extraindo texto dos arquivos PDF...")
+            // 1. Extração de texto de todos os PDFs anexados
+            val pdfUris = pdfUriStr.split("|").filter { it.isNotBlank() }
+            val combinedTextBuilder = StringBuilder()
+            
+            pdfUris.forEach { uriStr ->
+                val pdfUri = Uri.parse(uriStr)
+                val extracted = LocalPdfExtractor.extractText(context, pdfUri)
+                if (extracted.isNotBlank()) {
+                    combinedTextBuilder.append(extracted).append("\n\n")
+                }
+            }
+            val rawText = combinedTextBuilder.toString().trim()
 
             if (rawText.isBlank()) {
-                // Fallback local se o PDF for escaneado/vazio
-                val titleToSave = contest.title.ifBlank { "Novo Concurso" }
-                val contestToInsert = contest.copy(
-                    title = titleToSave,
-                    createdAt = now,
-                    updatedAt = now,
-                    isActive = true
-                )
-                val result = contestRepository.insert(contestToInsert)
-                if (result is Result.Success) {
-                    createDefaultDisciplines(result.data)
-                }
-                return result
+                return Result.error("Não foi possível extrair nenhum texto legível dos arquivos PDF selecionados. Certifique-se de que os PDFs não contêm apenas imagens ou estão protegidos por senha.")
             }
 
-            // 2. Recorte cirúrgico do texto local
-            val header = LocalPdfExtractor.extractHeaderSnippet(rawText)
-            val rules = LocalPdfExtractor.extractRulesSnippet(rawText)
-            val syllabus = LocalPdfExtractor.extractSyllabusSnippet(rawText, contest.title)
-
-            // 3. Chamada ao Gemini
-            val jsonResponse = geminiClient.parseSyllabusAndRules(header, rules, syllabus)
+            onProgress("Analisando edital com Inteligência Artificial (Gemini)...")
+            // 2. Chamada direta ao Gemini passando 100% do texto do edital, anexos e o cargo pretendido
+            val jsonResponse = geminiClient.parseFullEditalText(rawText, jobPosition)
 
             // 4. Deserialização do JSON da IA
+            val cleanedJson = cleanJsonResponse(jsonResponse)
             val type = object : TypeToken<ParsedEdital>() {}.type
             val parsedEdital: ParsedEdital = try {
-                gson.fromJson(jsonResponse, type)
+                gson.fromJson(cleanedJson, type)
             } catch (e: Exception) {
-                ParsedEdital() // fallback vazio se falhar a formatação do JSON
+                android.util.Log.e("CreateContestUseCase", "Erro ao deserializar JSON da IA. Resposta: $jsonResponse", e)
+                return Result.error("Falha ao analisar a resposta da IA. A resposta não estava em formato JSON válido.\n\nResposta da IA:\n$jsonResponse\n\nErro:\n${e.localizedMessage}")
             }
 
             // 5. Mescla de dados digitados pelo usuário ( placeholders / auto-preenchimento )
@@ -103,6 +109,13 @@ class CreateContestUseCase @Inject constructor(
 
             val contestToInsert = contest.copy(
                 title = finalTitle.ifBlank { "Novo Concurso" },
+                description = "Cargo: $jobPosition\n\n### LOG DE EXTRAÇÃO DA IA (GEMINI)\n" +
+                        "- **Status**: Sucesso\n" +
+                        "- **Modelo utilizado**: ${GeminiClient.MODEL_NAME}\n" +
+                        "- **Caracteres extraídos**: ${rawText.length}\n" +
+                        "- **Banca identificada**: ${finalOrganizer}\n" +
+                        "- **Disciplinas extraídas**: ${parsedEdital.disciplines?.size ?: 0}\n\n" +
+                        "#### Resposta JSON Bruta:\n$jsonResponse",
                 organizerName = finalOrganizer.ifBlank { "Geral" },
                 questionType = finalQuestionType,
                 examDateStr = parsedEdital.examDate,
@@ -116,6 +129,7 @@ class CreateContestUseCase @Inject constructor(
             )
 
             // 6. Insere concurso no banco
+            onProgress("Processando disciplinas e finalizando...")
             val contestIdResult = contestRepository.insert(contestToInsert)
 
             if (contestIdResult is Result.Success) {
@@ -140,20 +154,22 @@ class CreateContestUseCase @Inject constructor(
 
             contestIdResult
         } catch (e: Exception) {
-            // Em caso de falha de conexão ou timeout da API, grava apenas os dados digitados e cria as matérias padrão
-            val titleToSave = contest.title.ifBlank { "Novo Concurso" }
-            val contestToInsert = contest.copy(
-                title = titleToSave,
-                createdAt = now,
-                updatedAt = now,
-                isActive = true
-            )
-            val result = contestRepository.insert(contestToInsert)
-            if (result is Result.Success) {
-                createDefaultDisciplines(result.data)
-            }
-            result
+            android.util.Log.e("CreateContestUseCase", "Erro completo ao processar edital", e)
+            val fullErrorLog = "Falha ao processar o edital: ${e.localizedMessage}\n\nDetalhes (Stack Trace):\n${e.stackTraceToString()}"
+            Result.error(fullErrorLog, e)
         }
+    }
+
+    private fun cleanJsonResponse(rawResponse: String): String {
+        var clean = rawResponse.trim()
+        if (clean.startsWith("```")) {
+            clean = clean.substringAfter("\n")
+            if (clean.endsWith("```")) {
+                clean = clean.substring(0, clean.length - 3)
+            }
+        }
+        clean = clean.replace("```json", "").replace("```", "")
+        return clean.trim()
     }
 
     private suspend fun createDefaultDisciplines(contestId: Long) {
@@ -169,19 +185,30 @@ class CreateContestUseCase @Inject constructor(
     }
 
     private data class ParsedDiscipline(
+        @SerializedName(value = "name", alternate = ["nome", "nome_disciplina", "disciplina"])
         val name: String,
+        @SerializedName(value = "weight", alternate = ["peso", "questoes", "questões", "quantidade_questoes"])
         val weight: Double? = null
     )
 
     private data class ParsedEdital(
+        @SerializedName(value = "title", alternate = ["titulo", "título", "nome", "nome_concurso"])
         val title: String? = null,
+        @SerializedName(value = "organizer", alternate = ["banca", "organizador", "banca_organizadora"])
         val organizer: String? = null,
+        @SerializedName(value = "examFormat", alternate = ["formato_prova", "formato", "tipo_questao", "tipo_questoes"])
         val examFormat: String? = null,
+        @SerializedName(value = "examDate", alternate = ["data_prova", "data", "data_prova_escrita"])
         val examDate: String? = null,
+        @SerializedName(value = "examLocation", alternate = ["local_prova", "locais", "local", "cidade_prova"])
         val examLocation: String? = null,
+        @SerializedName(value = "allowedPen", alternate = ["caneta_permitida", "caneta", "tipo_caneta"])
         val allowedPen: String? = null,
+        @SerializedName(value = "allowedItems", alternate = ["itens_permitidos", "permitidos", "pode_levar"])
         val allowedItems: List<String>? = null,
+        @SerializedName(value = "prohibitedItems", alternate = ["itens_proibidos", "proibidos", "nao_levar", "não_levar"])
         val prohibitedItems: List<String>? = null,
+        @SerializedName(value = "disciplines", alternate = ["disciplinas", "materias", "matérias", "conteudo_programatico"])
         val disciplines: List<ParsedDiscipline>? = null
     )
 }

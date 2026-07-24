@@ -10,9 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -39,35 +38,37 @@ fun ContestFormScreen(
         }
     }
 
-    // A2 - Arquivo Anexado Inválido (Erro de Validação Local)
+    // A2 - Arquivos Anexados Inválidos (Erro de Validação Local)
     val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
             val contentResolver = context.contentResolver
-            val type = contentResolver.getType(uri)
-            if (type != "application/pdf") {
-                viewModel.onPdfError("Formato inválido. Selecione um PDF.")
-                return@rememberLauncherForActivityResult
-            }
-
-            var size = 0L
-            var name = "edital.pdf"
-            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (cursor.moveToFirst()) {
-                    if (sizeIndex >= 0) size = cursor.getLong(sizeIndex)
-                    if (nameIndex >= 0) name = cursor.getString(nameIndex)
+            uris.forEach { uri ->
+                val type = contentResolver.getType(uri)
+                if (type != "application/pdf") {
+                    viewModel.onPdfError("Formato inválido. Selecione apenas arquivos PDF.")
+                    return@rememberLauncherForActivityResult
                 }
-            }
 
-            if (size > 10 * 1024 * 1024) { // 10MB
-                viewModel.onPdfError("Arquivo muito grande. Selecione um PDF de até 10MB.")
-                return@rememberLauncherForActivityResult
-            }
+                var size = 0L
+                var name = "edital.pdf"
+                contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (cursor.moveToFirst()) {
+                        if (sizeIndex >= 0) size = cursor.getLong(sizeIndex)
+                        if (nameIndex >= 0) name = cursor.getString(nameIndex)
+                    }
+                }
 
-            viewModel.onPdfSelected(uri.toString(), name)
+                if (size > 15 * 1024 * 1024) { // 15MB
+                    viewModel.onPdfError("Arquivo muito grande ($name). Limite de 15MB por arquivo.")
+                    return@rememberLauncherForActivityResult
+                }
+
+                viewModel.addPdfAttachment(uri.toString(), name)
+            }
         }
     }
 
@@ -118,6 +119,18 @@ fun ContestFormScreen(
                 singleLine = true
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = uiState.jobPosition,
+                onValueChange = viewModel::onJobPositionChanged,
+                label = { Text("Cargo Pretendido") },
+                placeholder = { Text("Ex: Analista Judiciário, Agente de Polícia") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -146,7 +159,7 @@ fun ContestFormScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = "Anexo do Edital",
+                text = "Editais e Anexos (PDF)",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -162,20 +175,60 @@ fun ContestFormScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = if (uiState.syllabusPdfUri != null) Icons.Default.PictureAsPdf else Icons.Default.AttachFile,
+                    imageVector = Icons.Default.Add,
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp)
                 )
-                Text(uiState.pdfFileName ?: "Nenhum Arquivo Selecionado")
+                Text("Adicionar Editais / Anexos (PDF)")
             }
 
-            uiState.error?.let { errorMsg ->
-                Text(
-                    text = errorMsg,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Lista interativa dos PDFs anexados
+            uiState.pdfAttachments.forEach { attachment ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = attachment.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.removePdfAttachment(attachment.uri) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remover anexo",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -202,5 +255,52 @@ fun ContestFormScreen(
                 }
             }
         }
+    }
+
+    if (uiState.isLoading) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Salvando Concurso", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        strokeWidth = 4.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = uiState.savingStep.ifBlank { "Processando..." },
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    uiState.error?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onPdfError(null) },
+            title = { Text("Falha ao Salvar", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error) },
+            text = {
+                Text(
+                    text = errorMsg,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onPdfError(null) }
+                ) {
+                    Text("Fechar", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }
