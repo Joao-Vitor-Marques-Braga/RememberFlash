@@ -13,7 +13,8 @@ import javax.inject.Singleton
 
 @Singleton
 class QuestionRepositoryImpl @Inject constructor(
-    private val questionDao: QuestionDao
+    private val questionDao: QuestionDao,
+    private val mockExamAttemptDao: com.rememberflash.app.data.local.database.dao.MockExamAttemptDao
 ) : QuestionRepository {
 
     override fun getQuestionsByDiscipline(disciplineId: Long): Flow<List<Question>> {
@@ -65,4 +66,63 @@ class QuestionRepositoryImpl @Inject constructor(
             Result.error("Falha ao recuperar questão: ${e.localizedMessage}", e)
         }
     }
+
+    override fun getAttemptsByDiscipline(disciplineId: Long): Flow<List<com.rememberflash.app.domain.model.MockExamAttempt>> {
+        return mockExamAttemptDao.getAttemptsByDiscipline(disciplineId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getAttemptsByContest(contestId: Long): Flow<List<com.rememberflash.app.domain.model.MockExamAttempt>> {
+        return mockExamAttemptDao.getAttemptsByContest(contestId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun saveMockExamAttempt(attempt: com.rememberflash.app.domain.model.MockExamAttempt): Result<Long> {
+        return try {
+            val id = mockExamAttemptDao.insertAttempt(attempt.toEntity())
+            Result.success(id)
+        } catch (e: Exception) {
+            Result.error("Erro ao salvar tentativa de simulado: ${e.localizedMessage}", e)
+        }
+    }
+
+    override suspend fun resetQuestionsForDiscipline(disciplineId: Long): Result<Unit> {
+        return try {
+            questionDao.resetAnswersForDiscipline(disciplineId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao resetar questões da disciplina: ${e.localizedMessage}", e)
+        }
+    }
+
+    override suspend fun resetQuestionsForContest(contestId: Long): Result<Unit> {
+        return try {
+            questionDao.resetAnswersForContest(contestId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao resetar questões do concurso: ${e.localizedMessage}", e)
+        }
+    }
+
+    private fun com.rememberflash.app.data.local.database.entity.MockExamAttemptEntity.toDomain() = com.rememberflash.app.domain.model.MockExamAttempt(
+        id = id,
+        contestId = contestId,
+        disciplineId = disciplineId,
+        score = score,
+        totalQuestions = totalQuestions,
+        answersJson = answersJson,
+        createdAt = createdAt
+    )
+
+    private fun com.rememberflash.app.domain.model.MockExamAttempt.toEntity() = com.rememberflash.app.data.local.database.entity.MockExamAttemptEntity(
+        id = id,
+        contestId = contestId,
+        disciplineId = disciplineId,
+        score = score,
+        totalQuestions = totalQuestions,
+        answersJson = answersJson,
+        createdAt = createdAt
+    )
 }

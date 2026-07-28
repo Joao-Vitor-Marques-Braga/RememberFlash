@@ -89,6 +89,7 @@ class ScheduleRepositoryImpl @Inject constructor(
         examDate = examDate,
         availableHoursPerDay = availableHoursPerDay,
         restDaysPerWeek = restDaysPerWeek,
+        tokensSpent = tokensSpent,
         createdAt = createdAt,
         lastRecalculatedAt = lastRecalculatedAt
     )
@@ -99,6 +100,7 @@ class ScheduleRepositoryImpl @Inject constructor(
         examDate = examDate,
         availableHoursPerDay = availableHoursPerDay,
         restDaysPerWeek = restDaysPerWeek,
+        tokensSpent = tokensSpent,
         createdAt = createdAt,
         lastRecalculatedAt = lastRecalculatedAt
     )

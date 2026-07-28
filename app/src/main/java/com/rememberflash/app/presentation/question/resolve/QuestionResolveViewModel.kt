@@ -37,6 +37,9 @@ class QuestionResolveViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
+            // Reseta respostas anteriores para iniciar simulado novo limpo
+            questionRepository.resetQuestionsForDiscipline(disciplineId)
+
             // Carrega disciplina
             val disciplineName = when (val discResult = getDisciplineByIdUseCase(disciplineId)) {
                 is Result.Success -> discResult.data.name
@@ -51,6 +54,27 @@ class QuestionResolveViewModel @Inject constructor(
                     isLoading = false
                 )
             }
+        }
+    }
+
+    private fun saveAttempt() {
+        val score = _uiState.value.score
+        val totalQuestions = _uiState.value.questions.size
+        
+        // Mapeia questionId -> chosenOptionIndex
+        val answersMap = _uiState.value.selectedAnswers.mapKeys { (index, _) ->
+            _uiState.value.questions.getOrNull(index)?.id ?: 0L
+        }
+        val answersJsonString = com.google.gson.Gson().toJson(answersMap)
+
+        viewModelScope.launch {
+            val attempt = com.rememberflash.app.domain.model.MockExamAttempt(
+                disciplineId = disciplineId,
+                score = score,
+                totalQuestions = totalQuestions,
+                answersJson = answersJsonString
+            )
+            questionRepository.saveMockExamAttempt(attempt)
         }
     }
 
@@ -93,6 +117,7 @@ class QuestionResolveViewModel @Inject constructor(
         } else {
             // Fim do Simulado
             _uiState.value = _uiState.value.copy(isFinished = true)
+            saveAttempt()
         }
     }
 
@@ -105,5 +130,6 @@ class QuestionResolveViewModel @Inject constructor(
 
     fun finishPractice() {
         _uiState.value = _uiState.value.copy(isFinished = true)
+        saveAttempt()
     }
 }

@@ -27,4 +27,15 @@ interface QuestionDao {
 
     @Query("SELECT * FROM questions WHERE id = :questionId LIMIT 1")
     suspend fun getById(questionId: Long): QuestionEntity?
+
+    @Query("UPDATE questions SET chosen_option = NULL, is_correct = NULL, answered_at = NULL WHERE discipline_id = :disciplineId")
+    suspend fun resetAnswersForDiscipline(disciplineId: Long)
+
+    @Query(
+        """
+        UPDATE questions SET chosen_option = NULL, is_correct = NULL, answered_at = NULL 
+        WHERE discipline_id IN (SELECT id FROM disciplines WHERE contest_id = :contestId)
+        """
+    )
+    suspend fun resetAnswersForContest(contestId: Long)
 }

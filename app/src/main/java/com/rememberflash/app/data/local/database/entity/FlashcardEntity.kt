@@ -44,6 +44,9 @@ data class FlashcardEntity(
     @ColumnInfo(name = "is_synced", defaultValue = "0")
     val isSynced: Boolean = false,
 
+    @ColumnInfo(name = "tokens_spent", defaultValue = "0")
+    val tokensSpent: Int = 0,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
 )

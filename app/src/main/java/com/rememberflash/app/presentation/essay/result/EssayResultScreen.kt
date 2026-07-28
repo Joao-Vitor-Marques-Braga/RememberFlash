@@ -88,8 +88,28 @@ fun EssayResultScreen(
                         text = essay?.theme ?: "Tema da Redação",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
+
+                    if (essay != null && essay.tokensSpent > 0) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            Text(
+                                text = "Tokens IA: ${essay.tokensSpent}",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.padding(bottom = 16.dp))
+                    }
 
                     // Card da Nota
                     Card(

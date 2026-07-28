@@ -11,4 +11,9 @@ interface QuestionRepository {
     suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit>
     fun getAllQuestions(): Flow<List<Question>>
     suspend fun getQuestionById(questionId: Long): Result<Question>
+    fun getAttemptsByDiscipline(disciplineId: Long): Flow<List<com.rememberflash.app.domain.model.MockExamAttempt>>
+    fun getAttemptsByContest(contestId: Long): Flow<List<com.rememberflash.app.domain.model.MockExamAttempt>>
+    suspend fun saveMockExamAttempt(attempt: com.rememberflash.app.domain.model.MockExamAttempt): Result<Long>
+    suspend fun resetQuestionsForDiscipline(disciplineId: Long): Result<Unit>
+    suspend fun resetQuestionsForContest(contestId: Long): Result<Unit>
 }

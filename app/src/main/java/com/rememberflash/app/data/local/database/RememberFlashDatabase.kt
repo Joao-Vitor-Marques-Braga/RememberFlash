@@ -19,6 +19,9 @@ import com.rememberflash.app.data.local.database.entity.FlashcardEntity
 import com.rememberflash.app.data.local.database.entity.QuestionEntity
 import com.rememberflash.app.data.local.database.entity.ScheduleEntity
 
+import com.rememberflash.app.data.local.database.entity.MockExamAttemptEntity
+import com.rememberflash.app.data.local.database.dao.MockExamAttemptDao
+
 @Database(
     entities = [
         ContestEntity::class,
@@ -27,9 +30,10 @@ import com.rememberflash.app.data.local.database.entity.ScheduleEntity
         EssayEntity::class,
         QuestionEntity::class,
         ScheduleEntity::class,
-        DailyGoalEntity::class
+        DailyGoalEntity::class,
+        MockExamAttemptEntity::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -41,6 +45,7 @@ abstract class RememberFlashDatabase : RoomDatabase() {
     abstract fun essayDao(): EssayDao
     abstract fun scheduleDao(): ScheduleDao
     abstract fun questionDao(): QuestionDao
+    abstract fun mockExamAttemptDao(): MockExamAttemptDao
 
     companion object {
         const val DATABASE_NAME = "remember_flash_db"

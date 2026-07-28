@@ -37,10 +37,11 @@ class EssayRepositoryImpl @Inject constructor(
     override suspend fun updateWithAiFeedback(
         essayId: Long,
         feedbackJson: String,
-        score: Double
+        score: Double,
+        tokensSpent: Int
     ): Result<Unit> {
         return try {
-            essayDao.updateAiFeedback(essayId, feedbackJson, score)
+            essayDao.updateAiFeedback(essayId, feedbackJson, score, tokensSpent)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.error("Erro ao atualizar feedback da IA: ${e.localizedMessage}", e)

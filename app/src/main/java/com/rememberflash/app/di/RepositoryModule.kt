@@ -2,6 +2,7 @@ package com.rememberflash.app.di
 
 import com.rememberflash.app.data.ocr.MlKitTextExtractor
 import com.rememberflash.app.data.remote.gemini.GeminiClient
+import com.rememberflash.app.data.remote.gemini.GeminiScheduleClient
 import com.rememberflash.app.data.repository.AuthRepositoryImpl
 import com.rememberflash.app.data.repository.ContestRepositoryImpl
 import com.rememberflash.app.data.repository.DisciplineRepositoryImpl
@@ -63,4 +64,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindEssayEvaluator(impl: GeminiClient): EvaluateEssayUseCase.EssayEvaluator
+
+    @Binds
+    @Singleton
+    abstract fun bindGeminiScheduleClient(impl: GeminiClient): GeminiScheduleClient
 }

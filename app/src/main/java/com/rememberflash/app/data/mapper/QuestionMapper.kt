@@ -27,6 +27,7 @@ fun QuestionEntity.toDomain(): Question {
         chosenOption = chosenOption,
         isCorrect = isCorrect,
         answeredAt = answeredAt,
+        tokensSpent = tokensSpent,
         createdAt = createdAt
     )
 }
@@ -49,6 +50,7 @@ fun Question.toEntity(): QuestionEntity {
         chosenOption = chosenOption,
         isCorrect = isCorrect,
         answeredAt = answeredAt,
+        tokensSpent = tokensSpent,
         createdAt = createdAt
     )
 }

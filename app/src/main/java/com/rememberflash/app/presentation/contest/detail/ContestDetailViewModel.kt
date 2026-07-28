@@ -26,7 +26,8 @@ class ContestDetailViewModel @Inject constructor(
     private val createDisciplineUseCase: CreateDisciplineUseCase,
     private val updateDisciplineUseCase: UpdateDisciplineUseCase,
     private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
-    private val generateContestMockExamUseCase: GenerateContestMockExamUseCase
+    private val generateContestMockExamUseCase: GenerateContestMockExamUseCase,
+    private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestDetailUiState())
@@ -39,6 +40,7 @@ class ContestDetailViewModel @Inject constructor(
             contestId = id
             loadContest(id)
             observeDisciplines(id)
+            observeAttempts(id)
         } ?: run {
             _uiState.value = _uiState.value.copy(error = "Código de concurso inválido")
         }
@@ -69,6 +71,14 @@ class ContestDetailViewModel @Inject constructor(
         viewModelScope.launch {
             getDisciplinesByContestUseCase(id).collect { list ->
                 _uiState.value = _uiState.value.copy(disciplines = list)
+            }
+        }
+    }
+
+    private fun observeAttempts(id: Long) {
+        viewModelScope.launch {
+            questionRepository.getAttemptsByContest(id).collect { list ->
+                _uiState.value = _uiState.value.copy(attempts = list)
             }
         }
     }

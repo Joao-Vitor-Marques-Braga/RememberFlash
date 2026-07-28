@@ -13,6 +13,7 @@ fun EssayEntity.toDomain(): Essay = Essay(
     extractedText = extractedText,
     aiFeedbackJson = aiFeedbackJson,
     score = score,
+    tokensSpent = tokensSpent,
     createdAt = createdAt
 )
 
@@ -26,5 +27,6 @@ fun Essay.toEntity(): EssayEntity = EssayEntity(
     extractedText = extractedText,
     aiFeedbackJson = aiFeedbackJson,
     score = score,
+    tokensSpent = tokensSpent,
     createdAt = createdAt
 )

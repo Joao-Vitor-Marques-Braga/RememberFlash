@@ -22,5 +22,7 @@ data class DisciplineUiState(
 
     // Question Gen States
     val isGeneratingQuestions: Boolean = false,
-    val isQuestionsGeneratedSuccess: Boolean = false
+    val isQuestionsGeneratedSuccess: Boolean = false,
+
+    val attempts: List<com.rememberflash.app.domain.model.MockExamAttempt> = emptyList()
 )

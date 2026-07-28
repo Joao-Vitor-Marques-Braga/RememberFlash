@@ -22,5 +22,6 @@ data class Flashcard(
     val interval: Int = 0,
     val repetitions: Int = 0,
     val isSynced: Boolean = false,
+    val tokensSpent: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )

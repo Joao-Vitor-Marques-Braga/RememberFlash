@@ -4,7 +4,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import com.rememberflash.app.data.remote.gemini.GeminiClient
+import com.rememberflash.app.data.remote.gemini.GeminiScheduleClient
 import com.rememberflash.app.data.remote.gemini.PromptTemplates
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.DailyGoal
@@ -25,7 +25,7 @@ class GenerateStudyScheduleUseCase @Inject constructor(
     private val contestRepository: ContestRepository,
     private val disciplineRepository: DisciplineRepository,
     private val scheduleRepository: ScheduleRepository,
-    private val geminiClient: GeminiClient
+    private val geminiClient: GeminiScheduleClient
 ) {
     private val gson = Gson()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -52,7 +52,15 @@ class GenerateStudyScheduleUseCase @Inject constructor(
 
             // 2. Formatar parâmetros
             val startDateStr = dateFormat.format(Date())
-            val endDateStr = dateFormat.format(Date(examDateLong))
+            val maxPeriodMs = 90L * 24 * 60 * 60 * 1000L // Máximo de 90 dias para evitar limite de tokens
+            val todayMs = System.currentTimeMillis()
+            val effectiveExamDateLong = if (examDateLong - todayMs > maxPeriodMs) {
+                todayMs + maxPeriodMs
+            } else {
+                examDateLong
+            }
+
+            val endDateStr = dateFormat.format(Date(effectiveExamDateLong))
             val disciplinePairs = disciplines.map { it.name to (it.weight ?: 10.0) }
 
             // 3. Montar e disparar prompt estruturado para o Gemini
@@ -97,6 +105,7 @@ class GenerateStudyScheduleUseCase @Inject constructor(
                 examDate = examDateLong,
                 availableHoursPerDay = hoursPerDay,
                 restDaysPerWeek = daysBitmask, // Reusamos esse campo para a máscara de bits dos dias disponíveis
+                tokensSpent = com.rememberflash.app.data.remote.gemini.GeminiTokenTracker.lastTotalTokens,
                 createdAt = existingSchedule?.createdAt ?: System.currentTimeMillis(),
                 lastRecalculatedAt = System.currentTimeMillis()
             )

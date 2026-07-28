@@ -15,6 +15,7 @@ data class StudySchedule(
     val availableHoursPerDay: Double,
     val restDaysPerWeek: Int = 1,
     val dailyGoals: List<DailyGoal> = emptyList(),
+    val tokensSpent: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val lastRecalculatedAt: Long = System.currentTimeMillis()
 )

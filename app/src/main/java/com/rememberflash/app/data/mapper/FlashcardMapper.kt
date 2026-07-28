@@ -15,6 +15,7 @@ fun FlashcardEntity.toDomain(): Flashcard = Flashcard(
     interval = interval,
     repetitions = repetitions,
     isSynced = isSynced,
+    tokensSpent = tokensSpent,
     createdAt = createdAt
 )
 fun Flashcard.toEntity(): FlashcardEntity = FlashcardEntity(
@@ -28,5 +29,6 @@ fun Flashcard.toEntity(): FlashcardEntity = FlashcardEntity(
     interval = interval,
     repetitions = repetitions,
     isSynced = isSynced,
+    tokensSpent = tokensSpent,
     createdAt = createdAt
 )

@@ -34,6 +34,9 @@ data class ScheduleEntity(
     @ColumnInfo(name = "rest_days_per_week")
     val restDaysPerWeek: Int = 1,
 
+    @ColumnInfo(name = "tokens_spent")
+    val tokensSpent: Int = 0,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

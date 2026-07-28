@@ -11,5 +11,6 @@ data class ContestDetailUiState(
     val disciplineNameError: String? = null,
     val isGeneratingMock: Boolean = false,
     val mockGenerationProgress: Float = 0f,
-    val mockGenerationStatus: String = ""
+    val mockGenerationStatus: String = "",
+    val attempts: List<com.rememberflash.app.domain.model.MockExamAttempt> = emptyList()
 )

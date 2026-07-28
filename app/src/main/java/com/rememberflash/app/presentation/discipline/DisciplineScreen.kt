@@ -313,6 +313,55 @@ fun DisciplineScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Iniciar Simulado", fontWeight = FontWeight.Bold)
                                     }
+
+                                    // Lista de Tentativas Anteriores
+                                    if (uiState.attempts.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(24.dp))
+                                        Text(
+                                            text = "Histórico de Tentativas:",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        uiState.attempts.forEachIndexed { index, attempt ->
+                                            val dateFormatted = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(attempt.createdAt))
+                                            val pct = (attempt.score.toFloat() / attempt.totalQuestions.toFloat() * 100).toInt()
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column {
+                                                        Text(
+                                                            text = "Tentativa #${uiState.attempts.size - index}",
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                        Text(
+                                                            text = dateFormatted,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "${attempt.score} / ${attempt.totalQuestions} acertos ($pct%)",
+                                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                        color = if (pct >= 70) SuccessGreen else MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 } else {
                                     Box(
                                         modifier = Modifier

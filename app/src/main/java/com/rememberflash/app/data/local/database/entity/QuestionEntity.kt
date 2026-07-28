@@ -46,6 +46,9 @@ data class QuestionEntity(
     @ColumnInfo(name = "answered_at")
     val answeredAt: Long? = null,
 
+    @ColumnInfo(name = "tokens_spent")
+    val tokensSpent: Int = 0,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
 )

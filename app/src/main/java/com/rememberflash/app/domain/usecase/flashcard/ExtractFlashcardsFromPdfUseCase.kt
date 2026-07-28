@@ -36,6 +36,7 @@ class ExtractFlashcardsFromPdfUseCase @Inject constructor(
                     front = front.trim(),
                     back = back.trim(),
                     source = FlashcardSource.PDF_EXTRACT,
+                    tokensSpent = com.rememberflash.app.data.remote.gemini.GeminiTokenTracker.lastTotalTokens,
                     createdAt = System.currentTimeMillis()
                 )
             }

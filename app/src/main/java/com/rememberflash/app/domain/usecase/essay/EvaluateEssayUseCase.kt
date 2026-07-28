@@ -28,7 +28,8 @@ class EvaluateEssayUseCase @Inject constructor(
             essayRepository.updateWithAiFeedback(
                 essayId = essay.id,
                 feedbackJson = feedbackJson,
-                score = extractScoreFromFeedback(feedbackJson)
+                score = extractScoreFromFeedback(feedbackJson),
+                tokensSpent = com.rememberflash.app.data.remote.gemini.GeminiTokenTracker.lastTotalTokens
             )
             Result.success(feedbackJson)
         } catch (e: Exception) {

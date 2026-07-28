@@ -17,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class GeminiClient @Inject constructor(
     private val preferencesManager: SecurePreferencesManager
-) : EvaluateEssayUseCase.EssayEvaluator {
+) : EvaluateEssayUseCase.EssayEvaluator, GeminiScheduleClient {
 
     private var cachedModel: GenerativeModel? = null
     private var cachedApiKey: String? = null
@@ -39,7 +39,7 @@ class GeminiClient @Inject constructor(
                     temperature = 0.3f
                     topK = 40
                     topP = 0.95f
-                    maxOutputTokens = 4096
+                    maxOutputTokens = 8192
                 }
             )
         }
@@ -49,9 +49,34 @@ class GeminiClient @Inject constructor(
 
     suspend fun generateContent(prompt: String): String {
         val model = getOrCreateModel()
-        val response = model.generateContent(prompt)
-        return response.text
-            ?: throw IllegalStateException("Resposta vazia do modelo Gemini")
+        val inputTokens = try {
+            model.countTokens(prompt).totalTokens
+        } catch (ex: Exception) {
+            -1
+        }
+        android.util.Log.d("GeminiClient", "Geração do Gemini - Tokens de entrada: $inputTokens")
+        
+        // Inicializa o tracker com a estimativa de entrada
+        GeminiTokenTracker.reset()
+        if (inputTokens > 0) {
+            GeminiTokenTracker.lastInputTokens = inputTokens
+        }
+        
+        try {
+            val response = model.generateContent(prompt)
+            
+            // Grava os dados oficiais de uso retornados pelo Gemini
+            response.usageMetadata?.let { usage ->
+                GeminiTokenTracker.lastInputTokens = usage.promptTokenCount
+                GeminiTokenTracker.lastOutputTokens = usage.candidatesTokenCount
+            }
+            
+            return response.text
+                ?: throw IllegalStateException("Resposta vazia do modelo Gemini")
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiClient", "Erro na geração do Gemini - Tokens de entrada: $inputTokens", e)
+            throw e
+        }
     }
 
     override suspend fun evaluate(essayText: String, theme: String): String {
@@ -95,7 +120,7 @@ class GeminiClient @Inject constructor(
         return generateContent(prompt)
     }
 
-    suspend fun generateStudySchedule(
+    override suspend fun generateStudySchedule(
         prompt: String
     ): String {
         return generateContent(prompt)

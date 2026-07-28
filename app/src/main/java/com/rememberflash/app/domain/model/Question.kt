@@ -16,5 +16,6 @@ data class Question(
     val chosenOption: Int? = null,
     val isCorrect: Boolean? = null,
     val answeredAt: Long? = null,
+    val tokensSpent: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )

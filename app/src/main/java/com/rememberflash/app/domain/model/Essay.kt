@@ -15,5 +15,6 @@ data class Essay(
     val extractedText: String? = null,
     val aiFeedbackJson: String? = null,
     val score: Double? = null,
+    val tokensSpent: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -156,13 +156,33 @@ fun QuestionResolveScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         
-                        LinearProgressIndicator(
-                            progress = (currentIndex + 1).toFloat() / uiState.questions.size.toFloat(),
-                            modifier = Modifier
-                                .width(120.dp)
-                                .height(6.dp),
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (question.tokensSpent > 0) {
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                    ),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "${question.tokensSpent} tks",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            LinearProgressIndicator(
+                                progress = (currentIndex + 1).toFloat() / uiState.questions.size.toFloat(),
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(6.dp),
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))

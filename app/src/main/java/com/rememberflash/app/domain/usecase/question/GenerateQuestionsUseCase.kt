@@ -94,6 +94,7 @@ class GenerateQuestionsUseCase @Inject constructor(
                     correctIndex = raw.correctIndex,
                     explanation = raw.explanation,
                     source = QuestionSource.AI_GENERATED,
+                    tokensSpent = com.rememberflash.app.data.remote.gemini.GeminiTokenTracker.lastTotalTokens,
                     createdAt = System.currentTimeMillis()
                 )
             }

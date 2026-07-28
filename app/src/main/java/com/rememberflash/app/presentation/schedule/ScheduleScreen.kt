@@ -341,6 +341,29 @@ fun ScheduleCalendarView(
             }
         }
 
+        // Tokens Gastos
+        if (uiState.schedule != null && uiState.schedule.tokensSpent > 0) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Tokens IA: ${uiState.schedule.tokensSpent}",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
         // Calendário Interativo
         Card(
             modifier = Modifier.fillMaxWidth(),

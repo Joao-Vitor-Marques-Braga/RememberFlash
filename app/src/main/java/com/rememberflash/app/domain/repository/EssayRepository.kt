@@ -10,7 +10,8 @@ interface EssayRepository {
     suspend fun updateWithAiFeedback(
         essayId: Long,
         feedbackJson: String,
-        score: Double
+        score: Double,
+        tokensSpent: Int
     ): Result<Unit>
     fun getByUser(userId: String): Flow<List<Essay>>
     fun getByContest(contestId: Long): Flow<List<Essay>>

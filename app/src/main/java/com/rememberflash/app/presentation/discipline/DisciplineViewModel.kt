@@ -38,6 +38,7 @@ class DisciplineViewModel @Inject constructor(
     private val extractFlashcardsFromPdfUseCase: ExtractFlashcardsFromPdfUseCase,
     private val generateQuestionsUseCase: GenerateQuestionsUseCase,
     private val geminiClient: GeminiClient,
+    private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -87,6 +88,11 @@ class DisciplineViewModel @Inject constructor(
         viewModelScope.launch {
             getQuestionsByDisciplineUseCase(disciplineId).collectLatest { questions ->
                 _uiState.value = _uiState.value.copy(questions = questions)
+            }
+        }
+        viewModelScope.launch {
+            questionRepository.getAttemptsByDiscipline(disciplineId).collectLatest { attempts ->
+                _uiState.value = _uiState.value.copy(attempts = attempts)
             }
         }
     }

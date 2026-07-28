@@ -20,11 +20,12 @@ interface EssayDao {
         """
         UPDATE essays SET 
             ai_feedback_json = :feedbackJson, 
-            score = :score 
+            score = :score,
+            tokens_spent = :tokensSpent
         WHERE id = :essayId
         """
     )
-    suspend fun updateAiFeedback(essayId: Long, feedbackJson: String, score: Double)
+    suspend fun updateAiFeedback(essayId: Long, feedbackJson: String, score: Double, tokensSpent: Int)
 
     @Query("SELECT * FROM essays WHERE user_id = :userId ORDER BY created_at DESC")
     fun getByUser(userId: String): Flow<List<EssayEntity>>
