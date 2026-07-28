@@ -12,11 +12,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val authRepository: com.rememberflash.app.domain.repository.AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    init {
+        checkActiveSession()
+    }
+
+    private fun checkActiveSession() {
+        viewModelScope.launch {
+            if (authRepository.isSessionValid()) {
+                _uiState.value = _uiState.value.copy(isSuccess = true)
+            }
+        }
+    }
 
     fun onEmailChanged(email: String) {
         _uiState.value = _uiState.value.copy(

@@ -32,7 +32,8 @@ fun ContestDetailScreen(
     onNavigateToEditContest: (Long) -> Unit,
     onNavigateToFlashcards: (Long) -> Unit,
     onNavigateToResolveContestQuestions: (Long) -> Unit,
-    onNavigateToSchedule: (Long) -> Unit
+    onNavigateToSchedule: (Long) -> Unit,
+    onNavigateToTutor: (String, Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -247,6 +248,28 @@ fun ContestDetailScreen(
                                             )
                                         }
                                     }
+                                }
+                            }
+
+                            // Botão Tutor do Edital (Dúvidas sobre o edital anexo)
+                            if (!contest.syllabusPdfUri.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { onNavigateToTutor("edital", contest.id) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Tirar Dúvidas do Edital (Tutor IA)", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                             }
 

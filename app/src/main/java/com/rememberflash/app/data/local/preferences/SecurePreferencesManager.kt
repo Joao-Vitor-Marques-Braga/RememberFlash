@@ -33,7 +33,10 @@ class SecurePreferencesManager @Inject constructor(
     )
 
     fun saveToken(token: String) {
-        prefs.edit().putString(KEY_JWT_TOKEN, token).apply()
+        prefs.edit()
+            .putString(KEY_JWT_TOKEN, token)
+            .putLong(KEY_LOGIN_TIMESTAMP, System.currentTimeMillis())
+            .apply()
     }
 
     fun getToken(): String? = prefs.getString(KEY_JWT_TOKEN, null)
@@ -63,7 +66,16 @@ class SecurePreferencesManager @Inject constructor(
 
     fun hasGeminiApiKey(): Boolean = !getGeminiApiKey().isNullOrBlank()
 
-    fun hasValidSession(): Boolean = !getToken().isNullOrBlank() && getUser() != null
+    fun hasValidSession(): Boolean {
+        val token = getToken()
+        val user = getUser()
+        val timestamp = prefs.getLong(KEY_LOGIN_TIMESTAMP, 0L)
+        if (token.isNullOrBlank() || user == null) return false
+        
+        val diff = System.currentTimeMillis() - timestamp
+        val twentyFourHoursMs = 24L * 60 * 60 * 1000L
+        return diff in 0L..twentyFourHoursMs
+    }
 
     fun clear() {
         prefs.edit().clear().apply()
@@ -126,6 +138,7 @@ class SecurePreferencesManager @Inject constructor(
         private const val KEY_DIFFICULTY = "ai_difficulty"
         private const val KEY_RIGOR = "ai_rigor"
         private const val KEY_TONE = "ai_tone"
+        private const val KEY_LOGIN_TIMESTAMP = "login_timestamp"
     }
 }
 

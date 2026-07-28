@@ -186,6 +186,9 @@ fun AppNavGraph(
                 },
                 onNavigateToSchedule = { contestId ->
                     navController.navigate(Routes.schedule(contestId))
+                },
+                onNavigateToTutor = { type, id ->
+                    navController.navigate(Routes.tutorChat(type, id))
                 }
             )
         }

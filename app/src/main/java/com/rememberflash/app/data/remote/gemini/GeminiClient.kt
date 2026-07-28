@@ -36,10 +36,11 @@ class GeminiClient @Inject constructor(
                 modelName = MODEL_NAME,
                 apiKey = apiKey,
                 generationConfig = generationConfig {
-                    temperature = 0.3f
+                    temperature = 0.2f
                     topK = 40
                     topP = 0.95f
-                    maxOutputTokens = 8192
+                    maxOutputTokens = 10000
+
                 }
             )
         }

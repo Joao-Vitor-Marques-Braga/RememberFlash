@@ -20,8 +20,10 @@ import javax.inject.Inject
 class TutorChatViewModel @Inject constructor(
     private val questionRepository: QuestionRepository,
     private val essayRepository: EssayRepository,
+    private val contestRepository: com.rememberflash.app.domain.repository.ContestRepository,
     private val geminiClient: GeminiClient,
     private val preferencesManager: SecurePreferencesManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -86,6 +88,45 @@ class TutorChatViewModel @Inject constructor(
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Erro ao carregar contexto da redação.",
+                        isThinking = false
+                    )
+                }
+            } else if (type == "edital") {
+                val result = contestRepository.getById(id)
+                if (result is Result.Success) {
+                    val contest = result.data
+                    val pdfUriStr = contest.syllabusPdfUri ?: ""
+                    val pdfUris = pdfUriStr.split("|").filter { it.isNotBlank() }
+                    
+                    val combinedTextBuilder = StringBuilder()
+                    pdfUris.forEach { uriStr ->
+                        try {
+                            val pdfUri = android.net.Uri.parse(uriStr)
+                            val extracted = com.rememberflash.app.data.local.pdf.LocalPdfExtractor.extractText(context, pdfUri)
+                            if (extracted.isNotBlank()) {
+                                combinedTextBuilder.append(extracted).append("\n\n")
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("TutorChatViewModel", "Erro ao extrair pdf no tutor", e)
+                        }
+                    }
+                    val editalText = combinedTextBuilder.toString().trim()
+                    
+                    activeContextDetails = """
+                        |Tipo: Análise de Edital (Dúvidas do Edital)
+                        |Concurso: ${contest.title}
+                        |Banca: ${contest.organizerName}
+                        |Conteúdo Extraído do Edital e Anexos:
+                        |${if (editalText.isNotBlank()) editalText.take(50000) else "Nenhum texto extraído dos PDFs."}
+                    """.trimMargin()
+                    
+                    _uiState.value = _uiState.value.copy(
+                        activeContextTitle = "Tutor do Edital",
+                        isThinking = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Erro ao carregar edital do concurso.",
                         isThinking = false
                     )
                 }
