@@ -50,6 +50,12 @@ class ScheduleRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getAllDailyGoalsFlow(): Flow<List<DailyGoal>> {
+        return scheduleDao.getAllDailyGoalsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun insertDailyGoals(goals: List<DailyGoal>): Result<Unit> {
         return try {
             scheduleDao.insertDailyGoals(goals.map { it.toEntity() })

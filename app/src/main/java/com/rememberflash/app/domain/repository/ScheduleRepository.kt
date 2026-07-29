@@ -10,6 +10,7 @@ interface ScheduleRepository {
     suspend fun update(schedule: StudySchedule): Result<Unit>
     suspend fun getByContest(contestId: Long): Result<StudySchedule?>
     fun getDailyGoalsBySchedule(scheduleId: Long): Flow<List<DailyGoal>>
+    fun getAllDailyGoalsFlow(): Flow<List<DailyGoal>>
     suspend fun insertDailyGoals(goals: List<DailyGoal>): Result<Unit>
     suspend fun updateDailyGoalProgress(
         goalId: Long,

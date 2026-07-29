@@ -11,6 +11,7 @@ import com.rememberflash.app.domain.usecase.discipline.DeleteDisciplineUseCase
 import com.rememberflash.app.domain.usecase.discipline.GetDisciplinesByContestUseCase
 import com.rememberflash.app.domain.usecase.discipline.UpdateDisciplineUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateContestMockExamUseCase
+import com.rememberflash.app.domain.usecase.contest.SoftDeleteContestUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,8 @@ class ContestDetailViewModel @Inject constructor(
     private val updateDisciplineUseCase: UpdateDisciplineUseCase,
     private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
     private val generateContestMockExamUseCase: GenerateContestMockExamUseCase,
-    private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository
+    private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
+    private val softDeleteContestUseCase: SoftDeleteContestUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestDetailUiState())
@@ -191,6 +193,25 @@ class ContestDetailViewModel @Inject constructor(
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(error = result.message)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    fun deleteContest(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            when (val result = softDeleteContestUseCase(contestId)) {
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onSuccess()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
                 }
                 else -> {}
             }

@@ -48,6 +48,7 @@ fun ContestDetailScreen(
     var expandedMenuDisciplineId by remember { mutableStateOf<Long?>(null) }
     var showInfoBottomSheet by remember { mutableStateOf(false) }
     var showLogDialog by remember { mutableStateOf(false) }
+    var showDeleteContestDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -62,6 +63,13 @@ fun ContestDetailScreen(
                     uiState.contest?.let { contest ->
                         IconButton(onClick = { onNavigateToEditContest(contest.id) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar Concurso")
+                        }
+                        IconButton(onClick = { showDeleteContestDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Excluir Concurso",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 },
@@ -474,6 +482,46 @@ fun ContestDetailScreen(
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Alerta de Confirmação de Exclusão do Concurso (Inibição / Soft Delete)
+    if (showDeleteContestDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteContestDialog = false },
+            title = {
+                Text(
+                    text = "Excluir Concurso",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = "Tem certeza de que deseja excluir este concurso? O concurso e todas as suas disciplinas serão inativados, mas o histórico de desempenho será preservado.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteContest {
+                            showDeleteContestDialog = false
+                            onNavigateBack()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteContestDialog = false }
                 ) {
                     Text("Cancelar")
                 }

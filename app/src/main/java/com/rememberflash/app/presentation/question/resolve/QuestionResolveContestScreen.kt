@@ -31,6 +31,22 @@ fun QuestionResolveContestScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(uiState.proposalSaveResult) {
+        uiState.proposalSaveResult?.let { result ->
+            when (result) {
+                is com.rememberflash.app.domain.common.Result.Success -> {
+                    android.widget.Toast.makeText(context, "Cronograma adaptado com sucesso!", android.widget.Toast.LENGTH_LONG).show()
+                    onNavigateBack()
+                }
+                is com.rememberflash.app.domain.common.Result.Error -> {
+                    android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_LONG).show()
+                }
+                else -> {}
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -138,6 +154,132 @@ fun QuestionResolveContestScreen(
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                 color = if (pct >= 70) SuccessGreen else MaterialTheme.colorScheme.error
                             )
+                        }
+                    }
+
+                    // PONTOS DE MAIOR DIFICULDADE
+                    if (uiState.difficulties.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Pontos de Maior Dificuldade:",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
+                        )
+                        uiState.difficulties.forEach { diff ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = diff.disciplineName,
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Text(
+                                            text = "${diff.correctAnswers} acertos de ${diff.totalQuestions} questões",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                    Text(
+                                        text = "${diff.accuracy.toInt()}%",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // PROPOSTA DE ADAPTAÇÃO DE CRONOGRAMA
+                    if (uiState.showRecalculationProposal && uiState.comparisonList.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                                Text(
+                                    text = "💡 Proposta de Ajuste no Cronograma",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Detectamos dificuldades! Deseja adaptar seu tempo diário de estudos focado na melhoria do seu desempenho?",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                                )
+
+                                uiState.comparisonList.forEach { comp ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = comp.disciplineName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "${comp.currentMinutesPerDay}m",
+                                                style = MaterialTheme.typography.bodyMedium.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp).padding(horizontal = 4.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                text = "${comp.proposedMinutesPerDay}m",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = if (comp.proposedMinutesPerDay > comp.currentMinutesPerDay) SuccessGreen else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.rejectProposedSchedule() },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Rejeitar")
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.acceptProposedSchedule() },
+                                        modifier = Modifier.weight(1.5f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        if (uiState.isSavingProposal) {
+                                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                        } else {
+                                            Text("Aceitar Alterações")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 

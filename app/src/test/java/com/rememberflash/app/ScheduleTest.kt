@@ -102,6 +102,7 @@ class ScheduleTest {
         override suspend fun update(schedule: StudySchedule): Result<Unit> = Result.success(Unit)
         override suspend fun getByContest(contestId: Long): Result<StudySchedule?> = Result.success(existingSchedule)
         override fun getDailyGoalsBySchedule(scheduleId: Long): Flow<List<DailyGoal>> = flowOf(insertedGoals)
+        override fun getAllDailyGoalsFlow(): Flow<List<DailyGoal>> = flowOf(insertedGoals)
         override suspend fun insertDailyGoals(goals: List<DailyGoal>): Result<Unit> {
             insertedGoals.addAll(goals)
             return Result.success(Unit)

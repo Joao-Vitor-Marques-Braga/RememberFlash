@@ -27,6 +27,9 @@ interface ScheduleDao {
     @Query("SELECT * FROM daily_goals WHERE schedule_id = :scheduleId ORDER BY date ASC, discipline_id ASC")
     fun getDailyGoalsBySchedule(scheduleId: Long): Flow<List<DailyGoalEntity>>
 
+    @Query("SELECT * FROM daily_goals")
+    fun getAllDailyGoalsFlow(): Flow<List<DailyGoalEntity>>
+
     @Query(
         """
         UPDATE daily_goals SET 

@@ -30,7 +30,13 @@ data class QuestionResolveContestUiState(
     val isFinished: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val contestTitle: String = "Simulado do Edital"
+    val contestTitle: String = "Simulado do Edital",
+    val difficulties: List<com.rememberflash.app.domain.usecase.schedule.DifficultyItem> = emptyList(),
+    val comparisonList: List<com.rememberflash.app.domain.usecase.schedule.ScheduleComparisonItem> = emptyList(),
+    val proposedSchedule: com.rememberflash.app.domain.model.StudySchedule? = null,
+    val showRecalculationProposal: Boolean = false,
+    val isSavingProposal: Boolean = false,
+    val proposalSaveResult: Result<Unit>? = null
 )
 
 @HiltViewModel
@@ -38,6 +44,8 @@ class QuestionResolveContestViewModel @Inject constructor(
     private val contestRepository: ContestRepository,
     private val disciplineRepository: DisciplineRepository,
     private val questionRepository: QuestionRepository,
+    private val proposeScheduleRecalculationUseCase: com.rememberflash.app.domain.usecase.schedule.ProposeScheduleRecalculationUseCase,
+    private val acceptProposedScheduleUseCase: com.rememberflash.app.domain.usecase.schedule.AcceptProposedScheduleUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -113,6 +121,33 @@ class QuestionResolveContestViewModel @Inject constructor(
                 answersJson = answersJsonString
             )
             questionRepository.saveMockExamAttempt(attempt)
+
+            // Calcula o desempenho por disciplina neste simulado
+            val performance = mutableMapOf<Long, Pair<Int, Int>>() // disciplineId -> (correct, total)
+            _uiState.value.questions.forEachIndexed { i, qWithDisp ->
+                val q = qWithDisp.question
+                val selected = _uiState.value.selectedAnswers[i]
+                if (selected != null) {
+                    val isCorrect = selected == q.correctIndex
+                    val currentStats = performance[q.disciplineId] ?: Pair(0, 0)
+                    performance[q.disciplineId] = Pair(
+                        currentStats.first + (if (isCorrect) 1 else 0),
+                        currentStats.second + 1
+                    )
+                }
+            }
+
+            // Invoca a geração da proposta de cronograma baseado nas dificuldades
+            val result = proposeScheduleRecalculationUseCase(contestId, performance)
+            if (result is Result.Success) {
+                val proposal = result.data
+                _uiState.value = _uiState.value.copy(
+                    difficulties = proposal.difficulties,
+                    comparisonList = proposal.comparisonList,
+                    proposedSchedule = proposal.proposedSchedule,
+                    showRecalculationProposal = proposal.difficulties.isNotEmpty()
+                )
+            }
         }
     }
 
@@ -169,5 +204,25 @@ class QuestionResolveContestViewModel @Inject constructor(
     fun finishPractice() {
         _uiState.value = _uiState.value.copy(isFinished = true)
         saveAttempt()
+    }
+
+    fun acceptProposedSchedule() {
+        val schedule = _uiState.value.proposedSchedule ?: return
+        val goals = schedule.dailyGoals
+        _uiState.value = _uiState.value.copy(isSavingProposal = true)
+        viewModelScope.launch {
+            val result = acceptProposedScheduleUseCase(schedule, goals)
+            _uiState.value = _uiState.value.copy(
+                isSavingProposal = false,
+                proposalSaveResult = result,
+                showRecalculationProposal = false
+            )
+        }
+    }
+
+    fun rejectProposedSchedule() {
+        _uiState.value = _uiState.value.copy(
+            showRecalculationProposal = false
+        )
     }
 }
