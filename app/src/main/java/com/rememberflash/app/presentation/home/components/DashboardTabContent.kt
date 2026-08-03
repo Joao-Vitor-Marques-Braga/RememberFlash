@@ -18,17 +18,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +53,16 @@ fun DashboardTabContent(
     onNavigateToCreateContest: () -> Unit,
     onNavigateToContestDetail: (Long) -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredContests = remember(uiState.activeContests, searchQuery) {
+        uiState.activeContests.filter { contest ->
+            contest.title.contains(searchQuery, ignoreCase = true) ||
+            contest.organizerName.contains(searchQuery, ignoreCase = true) ||
+            contest.description.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Olá, ${uiState.user?.name?.substringBefore(" ") ?: "Estudante"}",
@@ -72,9 +90,41 @@ fun DashboardTabContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
+        if (uiState.activeContests.isNotEmpty()) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                placeholder = { Text("Buscar concursos...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Buscar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Limpar busca",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+
         ContestsList(
             isLoading = uiState.isLoading,
-            contests = uiState.activeContests,
+            contests = filteredContests,
+            isSearchActive = searchQuery.isNotEmpty(),
             onNavigateToCreateContest = onNavigateToCreateContest,
             onNavigateToContestDetail = onNavigateToContestDetail
         )
@@ -130,6 +180,7 @@ private fun DailyGoalProgressCard(hasTodayGoals: Boolean, progress: Float) {
 private fun ContestsList(
     isLoading: Boolean,
     contests: List<Contest>,
+    isSearchActive: Boolean,
     onNavigateToCreateContest: () -> Unit,
     onNavigateToContestDetail: (Long) -> Unit
 ) {
@@ -140,20 +191,35 @@ private fun ContestsList(
             }
         }
         contests.isEmpty() -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { onNavigateToCreateContest() }
-                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Toque no + para adicionar seu primeiro edital",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            if (isSearchActive) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Nenhum concurso encontrado para a busca",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onNavigateToCreateContest() }
+                        .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Toque no + para adicionar seu primeiro edital",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
         else -> {

@@ -174,7 +174,9 @@ class ContestFormViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(savingStep = step)
                 }
             } else {
-                updateContestUseCase(contest)
+                updateContestUseCase(contest) { step ->
+                    _uiState.value = _uiState.value.copy(savingStep = step)
+                }
             }
 
             when (result) {
