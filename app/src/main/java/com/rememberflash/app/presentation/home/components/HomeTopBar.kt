@@ -1,6 +1,7 @@
 package com.rememberflash.app.presentation.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -23,14 +24,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeTopBar(
     userName: String?,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onAvatarClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        UserInitialsAvatar(userName)
+        UserInitialsAvatar(userName, onAvatarClick)
 
         Text(
             text = "RememberFlash",
@@ -51,7 +53,7 @@ fun HomeTopBar(
 }
 
 @Composable
-private fun UserInitialsAvatar(userName: String?) {
+private fun UserInitialsAvatar(userName: String?, onClick: () -> Unit) {
     val initials = userName
         ?.split(" ")
         ?.take(2)
@@ -62,7 +64,8 @@ private fun UserInitialsAvatar(userName: String?) {
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(

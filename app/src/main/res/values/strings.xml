@@ -7,7 +7,7 @@
     <string name="login_title">Entrar</string>
     <string name="login_email_hint">E-mail</string>
     <string name="login_password_hint">Senha</string>
-    <string name="login_button">Acessar</string>
+    <string name="login_button">Entrar</string>
     <string name="logout_button">Sair</string>
 
     <!-- Concursos -->

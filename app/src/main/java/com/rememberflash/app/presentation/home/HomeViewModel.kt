@@ -45,11 +45,25 @@ class HomeViewModel @Inject constructor(
     private val essayRepository: EssayRepository,
     private val questionRepository: QuestionRepository,
     private val disciplineRepository: DisciplineRepository,
-    private val scheduleRepository: ScheduleRepository
+    private val scheduleRepository: ScheduleRepository,
+    private val logoutUseCase: com.rememberflash.app.domain.usecase.auth.LogoutUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    val logoutEvent = MutableStateFlow(false)
+
+    fun logout() {
+        viewModelScope.launch {
+            when (logoutUseCase()) {
+                is Result.Success -> {
+                    logoutEvent.value = true
+                }
+                else -> {}
+            }
+        }
+    }
 
     init {
         loadHomeData()

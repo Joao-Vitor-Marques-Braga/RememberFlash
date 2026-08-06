@@ -69,6 +69,7 @@ class SecurePreferencesManager @Inject constructor(
 
     /** Limpa toda a sessão (logout completo). */
     fun clear() {
-        prefs.edit { clear() }
+        authSession.clearToken()
+        userPreferences.clear()
     }
 }

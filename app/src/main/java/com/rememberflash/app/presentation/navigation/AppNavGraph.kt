@@ -140,6 +140,11 @@ fun AppNavGraph(
                 },
                 onNavigateToEssayResult = { essayId ->
                     navController.navigate("essay_result/$essayId")
+                },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
                 }
             )
         }
