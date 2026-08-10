@@ -7,5 +7,6 @@ data class MockExamAttempt(
     val score: Int,
     val totalQuestions: Int,
     val answersJson: String,
+    val timesJson: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

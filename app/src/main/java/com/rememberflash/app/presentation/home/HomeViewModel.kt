@@ -34,6 +34,7 @@ data class HomeUiState(
     val dailyGoalProgress: Float = 0f,
     val todayGoals: List<DailyGoal> = emptyList(),
     val allDailyGoals: List<DailyGoal> = emptyList(),
+    val mockExamAttempts: List<com.rememberflash.app.domain.model.MockExamAttempt> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -87,6 +88,7 @@ class HomeViewModel @Inject constructor(
         observeQuestions()
         observeDisciplines()
         observeDailyGoals()
+        observeMockExamAttempts()
     }
 
     private fun observeActiveContests(userId: String) {
@@ -144,6 +146,14 @@ class HomeViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun observeMockExamAttempts() {
+        viewModelScope.launch {
+            questionRepository.getAllAttempts()
+                .catch { }
+                .collect { attempts -> _uiState.update { it.copy(mockExamAttempts = attempts) } }
         }
     }
 

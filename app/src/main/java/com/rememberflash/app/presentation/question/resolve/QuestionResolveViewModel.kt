@@ -22,6 +22,10 @@ class QuestionResolveViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    // [ITEM 1.8 — FIX] Instância única reutilizada em vez de `Gson()` criada a cada
+    // chamada de saveAttempt(). Gson é thread-safe e tem custo de inicialização.
+    private val gson = com.google.gson.Gson()
+
     private val _uiState = MutableStateFlow(QuestionResolveUiState())
     val uiState: StateFlow<QuestionResolveUiState> = _uiState.asStateFlow()
 
@@ -49,12 +53,35 @@ class QuestionResolveViewModel @Inject constructor(
 
             // Carrega questões
             getQuestionsByDisciplineUseCase(disciplineId).collectLatest { list ->
+                // [BUG #3 — FIX] Não sobrescreve currentQuestionStartTime em emissões
+                // subsequentes do Room (disparadas por answerQuestion() via UPDATE).
+                // O timer só é inicializado na primeira carga, quando ainda vale 0L.
+                val currentStartTime = _uiState.value.currentQuestionStartTime
                 _uiState.value = _uiState.value.copy(
                     questions = list.sortedBy { it.createdAt },
-                    isLoading = false
+                    isLoading = false,
+                    currentQuestionStartTime = if (currentStartTime > 0L) currentStartTime
+                    else System.currentTimeMillis()
                 )
             }
         }
+    }
+
+    private fun updateTimeSpentForCurrentQuestion() {
+        val currentIndex = _uiState.value.currentIndex
+        val question = _uiState.value.questions.getOrNull(currentIndex) ?: return
+        val hasSubmitted = _uiState.value.submittedAnswers.contains(currentIndex)
+        if (hasSubmitted) return
+
+        // [ITENS 1.1/1.2 — DUPLICAÇÃO REMOVIDA] Cálculo extraído para
+        // elapsedSecondsFrom() e accumulateQuestionTime() em QuestionResolveTimeUtils.kt.
+        val elapsed = elapsedSecondsFrom(_uiState.value.currentQuestionStartTime)
+        if (elapsed == 0) return
+
+        _uiState.value = _uiState.value.copy(
+            questionTimes = accumulateQuestionTime(_uiState.value.questionTimes, question.id, elapsed),
+            currentQuestionStartTime = System.currentTimeMillis()
+        )
     }
 
     private fun saveAttempt() {
@@ -65,14 +92,16 @@ class QuestionResolveViewModel @Inject constructor(
         val answersMap = _uiState.value.selectedAnswers.mapKeys { (index, _) ->
             _uiState.value.questions.getOrNull(index)?.id ?: 0L
         }
-        val answersJsonString = com.google.gson.Gson().toJson(answersMap)
+        val answersJsonString = gson.toJson(answersMap)
+        val timesJsonString = gson.toJson(_uiState.value.questionTimes)
 
         viewModelScope.launch {
             val attempt = com.rememberflash.app.domain.model.MockExamAttempt(
                 disciplineId = disciplineId,
                 score = score,
                 totalQuestions = totalQuestions,
-                answersJson = answersJsonString
+                answersJson = answersJsonString,
+                timesJson = timesJsonString
             )
             questionRepository.saveMockExamAttempt(attempt)
         }
@@ -97,11 +126,18 @@ class QuestionResolveViewModel @Inject constructor(
         val updatedSet = _uiState.value.submittedAnswers.toMutableSet()
         updatedSet.add(currentIndex)
 
+        // Trava o tempo da questão no momento em que responde
+        // [ITENS 1.1/1.2 — DUPLICAÇÃO REMOVIDA] Usa elapsedSecondsFrom() e
+        // accumulateQuestionTime() de QuestionResolveTimeUtils.kt.
+        val elapsedSeconds = elapsedSecondsFrom(_uiState.value.currentQuestionStartTime)
+        val updatedTimes = accumulateQuestionTime(_uiState.value.questionTimes, question.id, elapsedSeconds)
+
         val newScore = if (isCorrect) _uiState.value.score + 1 else _uiState.value.score
 
         _uiState.value = _uiState.value.copy(
             submittedAnswers = updatedSet,
-            score = newScore
+            score = newScore,
+            questionTimes = updatedTimes
         )
 
         // Persistência local no banco de dados
@@ -113,9 +149,14 @@ class QuestionResolveViewModel @Inject constructor(
     fun nextQuestion() {
         val nextIndex = _uiState.value.currentIndex + 1
         if (nextIndex < _uiState.value.questions.size) {
-            _uiState.value = _uiState.value.copy(currentIndex = nextIndex)
+            updateTimeSpentForCurrentQuestion()
+            _uiState.value = _uiState.value.copy(
+                currentIndex = nextIndex,
+                currentQuestionStartTime = System.currentTimeMillis()
+            )
         } else {
             // Fim do Simulado
+            updateTimeSpentForCurrentQuestion()
             _uiState.value = _uiState.value.copy(isFinished = true)
             saveAttempt()
         }
@@ -124,11 +165,21 @@ class QuestionResolveViewModel @Inject constructor(
     fun previousQuestion() {
         val prevIndex = _uiState.value.currentIndex - 1
         if (prevIndex >= 0) {
-            _uiState.value = _uiState.value.copy(currentIndex = prevIndex)
+            updateTimeSpentForCurrentQuestion()
+            _uiState.value = _uiState.value.copy(
+                currentIndex = prevIndex,
+                currentQuestionStartTime = System.currentTimeMillis()
+            )
         }
     }
 
     fun finishPractice() {
+        // [BUG #4 — FIX] Não acumula tempo da questão atual antes de encerrar.
+        // - Se a questão foi submetida: submitAnswer() já travou o tempo exato.
+        //   Chamar updateTimeSpentForCurrentQuestion() seria no-op (o guard interno
+        //   retorna cedo), mas evitamos a chamada por clareza.
+        // - Se a questão NÃO foi submetida: o tempo não deve entrar nas estatísticas,
+        //   pois a questão ficou sem resposta e incluí-la distorceria a média.
         _uiState.value = _uiState.value.copy(isFinished = true)
         saveAttempt()
     }

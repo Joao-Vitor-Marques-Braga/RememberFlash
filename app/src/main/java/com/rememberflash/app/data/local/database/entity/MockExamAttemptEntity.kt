@@ -23,6 +23,9 @@ data class MockExamAttemptEntity(
     @ColumnInfo(name = "answers_json")
     val answersJson: String,
 
+    @ColumnInfo(name = "times_json")
+    val timesJson: String? = null,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
 )

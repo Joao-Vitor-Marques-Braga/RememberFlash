@@ -17,4 +17,7 @@ interface MockExamAttemptDao {
 
     @Query("SELECT * FROM mock_exam_attempts WHERE contest_id = :contestId ORDER BY created_at DESC")
     fun getAttemptsByContest(contestId: Long): Flow<List<MockExamAttemptEntity>>
+
+    @Query("SELECT * FROM mock_exam_attempts ORDER BY created_at DESC")
+    fun getAllAttempts(): Flow<List<MockExamAttemptEntity>>
 }

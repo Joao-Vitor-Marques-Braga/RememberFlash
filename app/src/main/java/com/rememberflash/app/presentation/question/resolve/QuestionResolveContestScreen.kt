@@ -157,6 +157,20 @@ fun QuestionResolveContestScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // [DUPLICAÇÃO REMOVIDA + BUG #1/#2 CORRIGIDOS]
+                    // Substituído pelo componente centralizado QuestionTimeSummaryCard.
+                    // O rótulo inclui o nome da disciplina, que é específico desta variante
+                    // de simulado (concurso completo vs. simulado por disciplina).
+                    val questionLabels = uiState.questions.mapIndexed { idx, qWithDisp ->
+                        qWithDisp.question.id to "Questão ${idx + 1} (${qWithDisp.disciplineName})"
+                    }
+                    QuestionTimeSummaryCard(
+                        questionTimes = uiState.questionTimes,
+                        questionLabels = questionLabels
+                    )
+
                     // PONTOS DE MAIOR DIFICULDADE
                     if (uiState.difficulties.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -327,22 +341,13 @@ fun QuestionResolveContestScreen(
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
-                        if (question.tokensSpent > 0) {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                ),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "${question.tokensSpent} tks",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
+
+                        TimerBadge(
+                            questionId = question.id,
+                            hasSubmitted = hasSubmitted,
+                            questionTimes = uiState.questionTimes,
+                            currentIndex = currentIndex
+                        )
                         
                         Spacer(modifier = Modifier.weight(1f))
                         
@@ -536,3 +541,4 @@ fun QuestionResolveContestScreen(
         }
     }
 }
+

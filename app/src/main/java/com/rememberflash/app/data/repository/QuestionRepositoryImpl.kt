@@ -79,6 +79,12 @@ class QuestionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getAllAttempts(): Flow<List<com.rememberflash.app.domain.model.MockExamAttempt>> {
+        return mockExamAttemptDao.getAllAttempts().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun saveMockExamAttempt(attempt: com.rememberflash.app.domain.model.MockExamAttempt): Result<Long> {
         return try {
             val id = mockExamAttemptDao.insertAttempt(attempt.toEntity())
@@ -113,6 +119,7 @@ class QuestionRepositoryImpl @Inject constructor(
         score = score,
         totalQuestions = totalQuestions,
         answersJson = answersJson,
+        timesJson = timesJson,
         createdAt = createdAt
     )
 
@@ -123,6 +130,7 @@ class QuestionRepositoryImpl @Inject constructor(
         score = score,
         totalQuestions = totalQuestions,
         answersJson = answersJson,
+        timesJson = timesJson,
         createdAt = createdAt
     )
 }

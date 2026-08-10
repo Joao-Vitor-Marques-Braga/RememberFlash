@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.common.Result
-import com.rememberflash.app.domain.model.Question
 import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.QuestionRepository
@@ -16,28 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class QuestionWithDiscipline(
-    val question: Question,
-    val disciplineName: String
-)
 
-data class QuestionResolveContestUiState(
-    val questions: List<QuestionWithDiscipline> = emptyList(),
-    val currentIndex: Int = 0,
-    val selectedAnswers: Map<Int, Int> = emptyMap(), // index -> chosen option
-    val submittedAnswers: Set<Int> = emptySet(), // index set
-    val score: Int = 0,
-    val isFinished: Boolean = false,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val contestTitle: String = "Simulado do Edital",
-    val difficulties: List<com.rememberflash.app.domain.usecase.schedule.DifficultyItem> = emptyList(),
-    val comparisonList: List<com.rememberflash.app.domain.usecase.schedule.ScheduleComparisonItem> = emptyList(),
-    val proposedSchedule: com.rememberflash.app.domain.model.StudySchedule? = null,
-    val showRecalculationProposal: Boolean = false,
-    val isSavingProposal: Boolean = false,
-    val proposalSaveResult: Result<Unit>? = null
-)
 
 @HiltViewModel
 class QuestionResolveContestViewModel @Inject constructor(
@@ -48,6 +26,10 @@ class QuestionResolveContestViewModel @Inject constructor(
     private val acceptProposedScheduleUseCase: com.rememberflash.app.domain.usecase.schedule.AcceptProposedScheduleUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // [ITEM 1.8 — FIX] Instância única reutilizada em vez de `Gson()` criada a cada
+    // chamada de saveAttempt(). Gson é thread-safe e tem custo de inicialização.
+    private val gson = com.google.gson.Gson()
 
     private val _uiState = MutableStateFlow(QuestionResolveContestUiState())
     val uiState: StateFlow<QuestionResolveContestUiState> = _uiState.asStateFlow()
@@ -92,7 +74,8 @@ class QuestionResolveContestViewModel @Inject constructor(
 
                 _uiState.value = _uiState.value.copy(
                     questions = unifiedQuestions.sortedBy { it.question.createdAt },
-                    isLoading = false
+                    isLoading = false,
+                    currentQuestionStartTime = System.currentTimeMillis()
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -103,6 +86,24 @@ class QuestionResolveContestViewModel @Inject constructor(
         }
     }
 
+    private fun updateTimeSpentForCurrentQuestion() {
+        val currentIndex = _uiState.value.currentIndex
+        val item = _uiState.value.questions.getOrNull(currentIndex) ?: return
+        val question = item.question
+        val hasSubmitted = _uiState.value.submittedAnswers.contains(currentIndex)
+        if (hasSubmitted) return
+
+        // [ITENS 1.1/1.2 — DUPLICAÇÃO REMOVIDA] Cálculo extraído para
+        // elapsedSecondsFrom() e accumulateQuestionTime() em QuestionResolveTimeUtils.kt.
+        val elapsed = elapsedSecondsFrom(_uiState.value.currentQuestionStartTime)
+        if (elapsed == 0) return
+
+        _uiState.value = _uiState.value.copy(
+            questionTimes = accumulateQuestionTime(_uiState.value.questionTimes, question.id, elapsed),
+            currentQuestionStartTime = System.currentTimeMillis()
+        )
+    }
+
     private fun saveAttempt() {
         val score = _uiState.value.score
         val totalQuestions = _uiState.value.questions.size
@@ -111,14 +112,17 @@ class QuestionResolveContestViewModel @Inject constructor(
         val answersMap = _uiState.value.selectedAnswers.mapKeys { (index, _) ->
             _uiState.value.questions.getOrNull(index)?.question?.id ?: 0L
         }
-        val answersJsonString = com.google.gson.Gson().toJson(answersMap)
+        // [ITEM 1.8 — FIX] Usa instância gson da classe em vez de nova instância inline.
+        val answersJsonString = gson.toJson(answersMap)
+        val timesJsonString = gson.toJson(_uiState.value.questionTimes)
 
         viewModelScope.launch {
             val attempt = com.rememberflash.app.domain.model.MockExamAttempt(
                 contestId = contestId,
                 score = score,
                 totalQuestions = totalQuestions,
-                answersJson = answersJsonString
+                answersJson = answersJsonString,
+                timesJson = timesJsonString
             )
             questionRepository.saveMockExamAttempt(attempt)
 
@@ -137,7 +141,7 @@ class QuestionResolveContestViewModel @Inject constructor(
                 }
             }
 
-            // Invoca a geração da proposta de cronograma baseado nas dificuldades
+            // Invoca a geração da proposta de cronograma baseado das dificuldades
             val result = proposeScheduleRecalculationUseCase(contestId, performance)
             if (result is Result.Success) {
                 val proposal = result.data
@@ -171,11 +175,18 @@ class QuestionResolveContestViewModel @Inject constructor(
         val updatedSet = _uiState.value.submittedAnswers.toMutableSet()
         updatedSet.add(currentIndex)
 
+        // Trava o tempo gasto na questão no momento da submissão
+        // [ITENS 1.1/1.2 — DUPLICAÇÃO REMOVIDA] Usa elapsedSecondsFrom() e
+        // accumulateQuestionTime() de QuestionResolveTimeUtils.kt.
+        val elapsedSeconds = elapsedSecondsFrom(_uiState.value.currentQuestionStartTime)
+        val updatedTimes = accumulateQuestionTime(_uiState.value.questionTimes, question.id, elapsedSeconds)
+
         val newScore = if (isCorrect) _uiState.value.score + 1 else _uiState.value.score
 
         _uiState.value = _uiState.value.copy(
             submittedAnswers = updatedSet,
-            score = newScore
+            score = newScore,
+            questionTimes = updatedTimes
         )
 
         // Persistência local
@@ -187,8 +198,13 @@ class QuestionResolveContestViewModel @Inject constructor(
     fun nextQuestion() {
         val nextIndex = _uiState.value.currentIndex + 1
         if (nextIndex < _uiState.value.questions.size) {
-            _uiState.value = _uiState.value.copy(currentIndex = nextIndex)
+            updateTimeSpentForCurrentQuestion()
+            _uiState.value = _uiState.value.copy(
+                currentIndex = nextIndex,
+                currentQuestionStartTime = System.currentTimeMillis()
+            )
         } else {
+            updateTimeSpentForCurrentQuestion()
             _uiState.value = _uiState.value.copy(isFinished = true)
             saveAttempt()
         }
@@ -197,11 +213,19 @@ class QuestionResolveContestViewModel @Inject constructor(
     fun previousQuestion() {
         val prevIndex = _uiState.value.currentIndex - 1
         if (prevIndex >= 0) {
-            _uiState.value = _uiState.value.copy(currentIndex = prevIndex)
+            updateTimeSpentForCurrentQuestion()
+            _uiState.value = _uiState.value.copy(
+                currentIndex = prevIndex,
+                currentQuestionStartTime = System.currentTimeMillis()
+            )
         }
     }
 
     fun finishPractice() {
+        // [BUG #4 — FIX] Mesma correção aplicada em QuestionResolveViewModel:
+        // não acumula tempo da questão atual antes de encerrar.
+        // - Se submetida: submitAnswer() já travou o tempo.
+        // - Se não submetida: não deve entrar nas estatísticas (distorceria a média).
         _uiState.value = _uiState.value.copy(isFinished = true)
         saveAttempt()
     }

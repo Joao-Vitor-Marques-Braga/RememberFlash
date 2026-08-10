@@ -11,5 +11,7 @@ data class QuestionResolveUiState(
     val score: Int = 0,
     val isFinished: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val questionTimes: Map<Long, Int> = emptyMap(), // questionId -> timeSpentSeconds
+    val currentQuestionStartTime: Long = 0L
 )

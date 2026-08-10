@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.rememberflash.app.domain.model.Question
 import com.rememberflash.app.presentation.theme.SuccessGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +118,21 @@ fun QuestionResolveScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // [DUPLICAÇÃO REMOVIDA + BUG #1/#2 CORRIGIDOS]
+                    // Substituído pelo componente centralizado QuestionTimeSummaryCard
+                    // (QuestionTimerComponents.kt), que:
+                    //   - Usa questionTimes.size como denominador da média (bug #1).
+                    //   - É a única fonte de verdade para TimerBadge (bug #2).
+                    val questionLabels = uiState.questions.mapIndexed { idx, q ->
+                        q.id to "Questão ${idx + 1}"
+                    }
+                    QuestionTimeSummaryCard(
+                        questionTimes = uiState.questionTimes,
+                        questionLabels = questionLabels
+                    )
+
                     Spacer(modifier = Modifier.height(40.dp))
 
                     Button(
@@ -160,21 +174,13 @@ fun QuestionResolveScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (question.tokensSpent > 0) {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                    ),
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = "${question.tokensSpent} tks",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
+                            TimerBadge(
+                                questionId = question.id,
+                                hasSubmitted = hasSubmitted,
+                                questionTimes = uiState.questionTimes,
+                                currentIndex = currentIndex
+                            )
+
                             LinearProgressIndicator(
                                 progress = (currentIndex + 1).toFloat() / uiState.questions.size.toFloat(),
                                 modifier = Modifier
@@ -282,82 +288,18 @@ fun QuestionResolveScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Bloco de Justificativa após responder
+                    // [CODE SMELL 2.2 — DUPLICAÇÃO REMOVIDA]
+                    // Extraído para QuestionFeedbackCard em QuestionResolveComponents.kt.
                     if (hasSubmitted) {
                         val chosenIsCorrect = selectedIndex == question.correctIndex
-                        val feedbackColor = if (chosenIsCorrect) SuccessGreen else MaterialTheme.colorScheme.error
-                        val feedbackIcon = if (chosenIsCorrect) Icons.Default.CheckCircle else Icons.Default.Error
-                        val feedbackTitle = if (chosenIsCorrect) "Você acertou!" else "Você errou!"
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 24.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = feedbackColor.copy(alpha = 0.08f)),
-                            border = BorderStroke(1.dp, feedbackColor.copy(alpha = 0.3f))
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = feedbackIcon,
-                                        contentDescription = null,
-                                        tint = feedbackColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = feedbackTitle,
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = feedbackColor
-                                    )
-                                }
-                                
-                                if (!chosenIsCorrect) {
-                                    val correctLetter = ('A' + question.correctIndex)
-                                    Text(
-                                        text = "Gabarito: Alternativa $correctLetter",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    )
-                                }
-
-                                if (!question.explanation.isNullOrBlank()) {
-                                    Text(
-                                        text = "Justificativa Didática:",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(top = 12.dp)
-                                    )
-                                    Text(
-                                        text = question.explanation,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-
-                                if (hasSubmitted) {
-                                    OutlinedButton(
-                                        onClick = { onNavigateToTutorChat(question.id) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 16.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.QuestionAnswer, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Dúvidas? Pergunte ao Tutor")
-                                    }
-                                }
-                            }
-                        }
+                        QuestionFeedbackCard(
+                            isCorrect = chosenIsCorrect,
+                            correctIndex = question.correctIndex,
+                            explanation = question.explanation,
+                            questionId = question.id,
+                            onNavigateToTutorChat = onNavigateToTutorChat,
+                            modifier = Modifier.padding(bottom = 24.dp)
+                        )
                     }
 
                     // Botões de Navegação Inferiores
@@ -400,3 +342,4 @@ fun QuestionResolveScreen(
         }
     }
 }
+

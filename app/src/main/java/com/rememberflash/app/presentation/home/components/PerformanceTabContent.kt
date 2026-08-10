@@ -4,6 +4,7 @@ import com.rememberflash.app.presentation.home.HomeUiState
 import com.rememberflash.app.presentation.home.util.PerformancePeriod
 import com.rememberflash.app.presentation.home.util.filterAnsweredByPeriod
 import com.rememberflash.app.presentation.home.util.filterByDiscipline
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -94,6 +96,12 @@ fun PerformanceTabContent(
         } else {
             PerformanceSummaryCard(questions = filteredQuestions)
 
+            ResponseTimeSummaryCard(
+                attempts = uiState.mockExamAttempts,
+                allQuestions = uiState.allQuestions,
+                filteredDisciplineId = disciplineFilterId
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -108,6 +116,102 @@ fun PerformanceTabContent(
                 if (discQuestions.isNotEmpty()) {
                     DisciplinePerformanceCard(discipline = discipline, questions = discQuestions)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResponseTimeSummaryCard(
+    attempts: List<com.rememberflash.app.domain.model.MockExamAttempt>,
+    allQuestions: List<Question>,
+    filteredDisciplineId: Long?
+) {
+    val gson = remember { com.google.gson.Gson() }
+    val typeToken = remember { object : com.google.gson.reflect.TypeToken<Map<String, Int>>() {}.type }
+
+    var totalSeconds = 0
+    var questionsCount = 0
+
+    attempts.forEach { attempt ->
+        if (!attempt.timesJson.isNullOrBlank()) {
+            val timesMap = try {
+                gson.fromJson<Map<String, Int>>(attempt.timesJson, typeToken)
+            } catch (e: Exception) {
+                null
+            }
+            timesMap?.forEach { (qIdStr, timeSecs) ->
+                val qId = qIdStr.toLongOrNull() ?: return@forEach
+                val question = allQuestions.firstOrNull { it.id == qId }
+                
+                if (filteredDisciplineId == null || question?.disciplineId == filteredDisciplineId) {
+                    totalSeconds += timeSecs
+                    questionsCount++
+                }
+            }
+        }
+    }
+
+    val avgSeconds = if (questionsCount > 0) totalSeconds / questionsCount else 0
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), shape = RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Tempo de Resposta",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = if (filteredDisciplineId != null) "Tempo médio nesta matéria" else "Tempo médio global por questão",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = if (questionsCount > 0) "${avgSeconds}s" else "N/A",
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "$questionsCount questões",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
             }
         }
     }

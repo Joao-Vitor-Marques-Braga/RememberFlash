@@ -33,7 +33,7 @@ import com.rememberflash.app.data.local.database.dao.MockExamAttemptDao
         DailyGoalEntity::class,
         MockExamAttemptEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
