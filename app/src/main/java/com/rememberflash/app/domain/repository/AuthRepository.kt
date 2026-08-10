@@ -13,4 +13,5 @@ interface AuthRepository {
     suspend fun hasGeminiApiKey(): Boolean
     suspend fun registerUser(name: String, cpf: String, email: String, passwordKey: String): Result<User>
     suspend fun authenticateUser(email: String, passwordKey: String): Result<User>
+    suspend fun changePassword(currentPasswordKey: String, newPasswordKey: String): Result<Unit>
 }

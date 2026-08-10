@@ -42,6 +42,16 @@ internal class RegisteredUsersPreferences(
     fun findByEmail(email: String): RegisteredUser? =
         getAll().firstOrNull { it.user.email.equals(email, ignoreCase = true) }
 
+    fun updatePassword(email: String, newPasswordKey: String): Boolean {
+        val users = getAll().toMutableList()
+        val index = users.indexOfFirst { it.user.email.equals(email, ignoreCase = true) }
+        if (index == -1) return false
+        val currentUser = users[index]
+        users[index] = currentUser.copy(passwordKey = newPasswordKey)
+        prefs.edit { putString(PreferenceKeys.REGISTERED_USERS, gson.toJson(users)) }
+        return true
+    }
+
     private fun RegisteredUser.isSamePerson(other: RegisteredUser): Boolean =
         user.email.equals(other.user.email, ignoreCase = true) || user.cpf == other.user.cpf
 }

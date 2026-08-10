@@ -52,18 +52,10 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToEssayCapture: () -> Unit,
     onNavigateToEssayResult: (Long) -> Unit,
-    onLogout: () -> Unit
+    onNavigateToProfile: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val logoutTriggered by viewModel.logoutEvent.collectAsState()
     var currentTab by remember { mutableStateOf(HomeTab.DASHBOARD) }
-    var showProfileDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(logoutTriggered) {
-        if (logoutTriggered) {
-            onLogout()
-        }
-    }
 
     Scaffold(
         bottomBar = {
@@ -89,7 +81,7 @@ fun HomeScreen(
             HomeTopBar(
                 userName = uiState.user?.name,
                 onNavigateToSettings = onNavigateToSettings,
-                onAvatarClick = { showProfileDialog = true }
+                onAvatarClick = onNavigateToProfile
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -114,77 +106,6 @@ fun HomeScreen(
                 )
             }
         }
-    }
-
-    if (showProfileDialog) {
-        AlertDialog(
-            onDismissRequest = { showProfileDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val initials = uiState.user?.name
-                            ?.split(" ")
-                            ?.take(2)
-                            ?.joinToString("") { it.take(1) }
-                            ?: "US"
-                        Text(
-                            text = initials.uppercase(),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                    Text(
-                        text = "Minha Conta",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ProfileField(label = "Nome", value = uiState.user?.name ?: "N/A")
-                    ProfileField(label = "E-mail", value = uiState.user?.email ?: "N/A")
-                    ProfileField(label = "CPF", value = uiState.user?.cpf ?: "N/A")
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showProfileDialog = false
-                        viewModel.logout()
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Sair da Conta", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showProfileDialog = false }) {
-                    Text("Fechar")
-                }
-            },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        )
     }
 }
 

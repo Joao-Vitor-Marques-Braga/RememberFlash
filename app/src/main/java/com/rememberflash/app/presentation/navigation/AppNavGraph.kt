@@ -26,6 +26,7 @@ import com.rememberflash.app.presentation.essay.capture.EssayCaptureScreen
 import com.rememberflash.app.presentation.essay.result.EssayResultScreen
 import com.rememberflash.app.presentation.tutor.TutorChatScreen
 import com.rememberflash.app.presentation.schedule.ScheduleScreen
+import com.rememberflash.app.presentation.profile.ProfileScreen
 
 /**
  * Rotas de navegação do RememberFlash.
@@ -50,6 +51,7 @@ object Routes {
     const val QUESTION_RESOLVE = "question_resolve/{disciplineId}"
     const val TUTOR_CHAT = "tutor_chat/{type}/{id}"
     const val QUESTION_RESOLVE_CONTEST = "question_resolve_contest/{contestId}"
+    const val PROFILE = "profile"
 
     fun contestDetail(contestId: Long) = "contest_detail/$contestId"
     fun contestForm(contestId: Long? = null) = if (contestId != null) "contest_form?contestId=$contestId" else "contest_form"
@@ -141,10 +143,8 @@ fun AppNavGraph(
                 onNavigateToEssayResult = { essayId ->
                     navController.navigate("essay_result/$essayId")
                 },
-                onLogout = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
+                onNavigateToProfile = {
+                    navController.navigate(Routes.PROFILE)
                 }
             )
         }
@@ -317,6 +317,19 @@ fun AppNavGraph(
             SettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
                 }
             )
         }

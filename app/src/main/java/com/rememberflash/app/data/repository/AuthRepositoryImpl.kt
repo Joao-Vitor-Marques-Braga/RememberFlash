@@ -77,4 +77,27 @@ class AuthRepositoryImpl @Inject constructor(
             Result.error("Erro ao autenticar: ${e.localizedMessage}", e)
         }
     }
+
+    override suspend fun changePassword(currentPasswordKey: String, newPasswordKey: String): Result<Unit> {
+        return try {
+            val userSession = getCurrentSession().getOrNull()
+                ?: return Result.error("Sessão ativa não encontrada.")
+            
+            val registered = preferencesManager.findRegisteredUser(userSession.email)
+                ?: return Result.error("Usuário não encontrado no cadastro.")
+            
+            if (registered.passwordKey != currentPasswordKey) {
+                return Result.error("Senha atual incorreta.")
+            }
+            
+            val success = preferencesManager.updateRegisteredUserPassword(userSession.email, newPasswordKey)
+            if (success) {
+                Result.success(Unit)
+            } else {
+                Result.error("Erro ao atualizar a senha no armazenamento local.")
+            }
+        } catch (e: Exception) {
+            Result.error("Erro ao alterar senha: ${e.localizedMessage}", e)
+        }
+    }
 }
