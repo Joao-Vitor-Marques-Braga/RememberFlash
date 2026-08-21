@@ -217,6 +217,79 @@ fun ProfileScreen(
                     }
                 }
 
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+
+                // Formulário de Alteração de E-mail
+                Text(
+                    text = "Alterar E-mail",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                OutlinedTextField(
+                    value = uiState.newEmailText,
+                    onValueChange = viewModel::onNewEmailChange,
+                    label = { Text("Novo E-mail") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                var showConfirmPasswordForEmail by remember { mutableStateOf(false) }
+
+                OutlinedTextField(
+                    value = uiState.confirmPasswordForEmailText,
+                    onValueChange = viewModel::onConfirmPasswordForEmailChange,
+                    label = { Text("Confirme com sua Senha") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    visualTransformation = if (showConfirmPasswordForEmail) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPasswordForEmail = !showConfirmPasswordForEmail }) {
+                            Icon(
+                                imageVector = if (showConfirmPasswordForEmail) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showConfirmPasswordForEmail) "Esconder senha" else "Mostrar senha"
+                            )
+                        }
+                    }
+                )
+
+                // Mensagens de Feedback de E-mail
+                if (uiState.emailChangeError != null) {
+                    Text(
+                        text = uiState.emailChangeError ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                    )
+                }
+
+                if (uiState.emailChangeSuccess) {
+                    Text(
+                        text = "E-mail alterado com sucesso!",
+                        color = SuccessGreen,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                    )
+                }
+
+                Button(
+                    onClick = viewModel::changeEmail,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(55.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !uiState.isChangingEmailLoading
+                ) {
+                    if (uiState.isChangingEmailLoading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text("Atualizar E-mail", fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Botão de Logout (Reaproveitado do Modal)

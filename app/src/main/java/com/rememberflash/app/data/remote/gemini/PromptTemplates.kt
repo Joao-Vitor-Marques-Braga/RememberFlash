@@ -13,46 +13,83 @@ object PromptTemplates {
         rigor: String,
         tone: String
     ): String = """
-        |Você é um avaliador especialista em redações de concursos públicos brasileiros.
-        |Avalie a redação abaixo seguindo rigorosamente os critérios da banca CESPE/CEBRASPE.
+        |Você é um examinador e avaliador especialista em redações de vestibulares e concursos públicos, com foco nos critérios da banca UniRV (Universidade de Rio Verde).
+        |Avalie minuciosamente o texto abaixo, sendo justo, criterioso e realista na atribuição de notas.
         |
-        |CRITÉRIOS DE PERSONALIZAÇÃO:
-        |- Rigor na Correção: $rigor. (Se for 'Rígido', seja extremamente exigente com a norma culta, coesão e adequação temática. Se for 'Flexível', valorize mais o conteúdo e a estrutura geral da argumentação, atenuando pequenas falhas gramaticais. Se for 'Padrão', siga estritamente as diretrizes tradicionais da banca).
-        |- Tom do Tutor Interativo: $tone. (Se for 'Direto/Objetivo', forneça feedbacks curtos, diretos ao ponto e objetivos. Se for 'Explicativo/Detalhado', explique didaticamente a origem de cada erro e como corrigi-lo com exemplos).
+        |DIRETRIZES DE AVALIAÇÃO DA BANCA UNIRV:
+        |A nota final varia de 0.0 a 10.0 e deve corresponder EXATAMENTE à soma das 5 competências avaliadas (cada uma valendo de 0.0 a 2.0):
         |
-        |TEMA: $theme
+        |1. Adequação ao Tema e Gênero Textual (0.0 a 2.0):
+        |   - 2.0: Aborda o tema integralmente com clareza e perfeito domínio da estrutura dissertativo-argumentativa.
+        |   - 1.5: Aborda o tema com pequenos desvios secundários ou tangenciamento leve.
+        |   - 1.0: Abordagem superficial do tema ou estrutura textual confusa.
+        |   - 0.5 ou 0.0: Fuga parcial/total ao tema ou cópia de textos motivadores.
         |
-        |REDAÇÃO:
+        |2. Domínio da Norma Culta e Correção Gramatical (0.0 a 2.0):
+        |   - 2.0: Excelente, no máximo 1 a 2 desvios gramaticais/ortográficos leves.
+        |   - 1.5: Bom domínio, de 3 a 5 desvios de concordância, pontuação, acentuação ou regência.
+        |   - 1.0: Razoável, presença frequente de erros gramaticais que prejudicam a fluidez.
+        |   - 0.5 ou menor: Muitos erros graves de ortografia, concordância e sintaxe.
+        |
+        |3. Argumentação, Consistência e Repertório (0.0 a 2.0):
+        |   - 2.0: Argumentos sólidos, fundamentados com repertório consistente e tese bem defendida.
+        |   - 1.5: Argumentação previsível (senso comum), mas coerente.
+        |   - 1.0: Argumentos frágeis, circulares ou contradições no posicionamento.
+        |   - 0.5 ou menor: Ausência de fundamentação ou exposição sem defesa de ponto de vista.
+        |
+        |4. Coesão e Coerência Textual (0.0 a 2.0):
+        |   - 2.0: Uso diversificado e correto de conectivos interparágrafos e intraparágrafos, progressão lógica fluida.
+        |   - 1.5: Pouca variedade de operadores argumentativos ou repetição frequente de termos.
+        |   - 1.0: Falhas de articulação que dificultam a leitura entre as ideias.
+        |   - 0.5 ou menor: Quebra total de progressão textual ou frases desconexas.
+        |
+        |5. Estrutura Conclusiva e Fechamento das Ideias (0.0 a 2.0):
+        |   - 2.0: Conclusão consistente que retoma a tese e sintetiza a discussão de forma clara e completa.
+        |   - 1.5: Conclusão presente, porém vaga ou com solução/fechamento genérico.
+        |   - 1.0: Conclusão abrupta ou que insere novos argumentos sem fechamento.
+        |   - 0.5 ou menor: Ausência de conclusão ou texto inacabado.
+        |
+        |CRITÉRIOS DE PERSONALIZAÇÃO DO USUÁRIO:
+        |- Rigor na Correção: $rigor. (Se for 'Rígido', seja implacável com desvios gramaticais e argumentação fraca. Se for 'Flexível', valorize mais o esforço e a clareza geral. Se for 'Padrão', siga estritamente o padrão da banca UniRV).
+        |- Tom do Feedback: $tone. (Se for 'Direto/Objetivo', seja sucinto e aponte os erros e acertos diretamente. Se for 'Explicativo/Detalhado', explique a regra gramatical/argumentativa e dê exemplos de como melhorar).
+        |
+        |TEMA DA PROPOSTA: $theme
+        |
+        |TEXTO DA REDAÇÃO:
         |$essayText
         |
-        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem texto adicional:
+        |IMPORTANTE:
+        |- Seja crítico e evite notas infladas ou padronizadas. A maioria dos textos reais apresenta erros gramaticais ou argumentativos e não deve receber notas próximas de 10 automaticamente.
+        |- O campo "nota" DEVE ser a soma exata das notas de cada uma das 5 competências (ex: se as notas forem 1.5, 1.0, 1.5, 1.5, 1.0, a "nota" total deve ser 6.5).
+        |
+        |Responda EXCLUSIVAMENTE em JSON válido no formato abaixo, sem nenhum texto adicional ou markdown fora do bloco JSON:
         |{
-        |  "nota": <número de 0.0 a 10.0>,
+        |  "nota": <soma_exata_das_competencias_entre_0.0_e_10.0>,
         |  "competencias": [
         |    {
-        |      "nome": "Adequação ao tema e à proposta",
+        |      "nome": "Adequação ao tema e gênero textual",
         |      "nota": <0.0 a 2.0>,
-        |      "comentario": "<feedback específico>"
+        |      "comentario": "<feedback analítico e apontamento de falhas ou acertos>"
         |    },
         |    {
-        |      "nome": "Domínio da norma culta",
+        |      "nome": "Domínio da norma culta e correção gramatical",
         |      "nota": <0.0 a 2.0>,
-        |      "comentario": "<feedback específico>"
+        |      "comentario": "<feedback analítico e apontamento de erros encontrados>"
         |    },
         |    {
-        |      "nome": "Argumentação e organização",
+        |      "nome": "Argumentação e consistência",
         |      "nota": <0.0 a 2.0>,
-        |      "comentario": "<feedback específico>"
+        |      "comentario": "<feedback analítico sobre a tese e repertório>"
         |    },
         |    {
         |      "nome": "Coesão e coerência",
         |      "nota": <0.0 a 2.0>,
-        |      "comentario": "<feedback específico>"
+        |      "comentario": "<feedback analítico sobre o encadeamento e conectivos>"
         |    },
         |    {
-        |      "nome": "Proposta de intervenção",
+        |      "nome": "Estrutura conclusiva e fechamento",
         |      "nota": <0.0 a 2.0>,
-        |      "comentario": "<feedback específico>"
+        |      "comentario": "<feedback analítico sobre a conclusão>"
         |    }
         |  ],
         |  "pontos_fortes": ["<ponto 1>", "<ponto 2>"],

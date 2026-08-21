@@ -11,5 +11,11 @@ data class ProfileUiState(
     val isChangingPasswordLoading: Boolean = false,
     val passwordChangeError: String? = null,
     val passwordChangeSuccess: Boolean = false,
-    val isLoggedOut: Boolean = false
+    val isLoggedOut: Boolean = false,
+    
+    val newEmailText: String = "",
+    val confirmPasswordForEmailText: String = "",
+    val isChangingEmailLoading: Boolean = false,
+    val emailChangeError: String? = null,
+    val emailChangeSuccess: Boolean = false
 )

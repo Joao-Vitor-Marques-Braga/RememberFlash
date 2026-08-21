@@ -98,7 +98,67 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun clearFeedback() {
-        _uiState.update { it.copy(passwordChangeError = null, passwordChangeSuccess = false) }
+        _uiState.update {
+            it.copy(
+                passwordChangeError = null,
+                passwordChangeSuccess = false,
+                emailChangeError = null,
+                emailChangeSuccess = false
+            )
+        }
+    }
+
+    fun onNewEmailChange(text: String) {
+        _uiState.update { it.copy(newEmailText = text, emailChangeError = null) }
+    }
+
+    fun onConfirmPasswordForEmailChange(text: String) {
+        _uiState.update { it.copy(confirmPasswordForEmailText = text, emailChangeError = null) }
+    }
+
+    fun changeEmail() {
+        val state = _uiState.value
+        if (state.newEmailText.isBlank() || state.confirmPasswordForEmailText.isBlank()) {
+            _uiState.update { it.copy(emailChangeError = "E-mail e senha de confirmação são obrigatórios.") }
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(state.newEmailText).matches()) {
+            _uiState.update { it.copy(emailChangeError = "Formato de e-mail inválido.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isChangingEmailLoading = true,
+                    emailChangeError = null,
+                    emailChangeSuccess = false
+                )
+            }
+            val result = authRepository.changeEmail(
+                newEmail = state.newEmailText,
+                passwordKey = state.confirmPasswordForEmailText
+            )
+            if (result.isSuccess) {
+                loadUserSession()
+                _uiState.update {
+                    it.copy(
+                        isChangingEmailLoading = false,
+                        emailChangeSuccess = true,
+                        newEmailText = "",
+                        confirmPasswordForEmailText = ""
+                    )
+                }
+            } else {
+                val errorMsg = (result as? com.rememberflash.app.domain.common.Result.Error)?.message ?: "Erro ao alterar o e-mail."
+                _uiState.update {
+                    it.copy(
+                        isChangingEmailLoading = false,
+                        emailChangeError = errorMsg
+                    )
+                }
+            }
+        }
     }
 
     fun logout() {

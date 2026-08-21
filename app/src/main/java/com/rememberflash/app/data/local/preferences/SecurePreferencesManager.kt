@@ -49,6 +49,8 @@ class SecurePreferencesManager @Inject constructor(
         registeredUsersPreferences.findByEmail(email)
     fun updateRegisteredUserPassword(email: String, newPasswordKey: String): Boolean =
         registeredUsersPreferences.updatePassword(email, newPasswordKey)
+    fun updateRegisteredUserEmail(oldEmail: String, newEmail: String): Boolean =
+        registeredUsersPreferences.updateEmail(oldEmail, newEmail)
 
     // --- Preferências de comportamento da IA ---
     fun saveDifficulty(difficulty: String) =

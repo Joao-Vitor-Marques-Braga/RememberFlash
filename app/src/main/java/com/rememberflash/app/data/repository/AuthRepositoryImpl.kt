@@ -100,4 +100,36 @@ class AuthRepositoryImpl @Inject constructor(
             Result.error("Erro ao alterar senha: ${e.localizedMessage}", e)
         }
     }
+
+    override suspend fun changeEmail(newEmail: String, passwordKey: String): Result<Unit> {
+        return try {
+            val userSession = getCurrentSession().getOrNull()
+                ?: return Result.error("Sessão ativa não encontrada.")
+            
+            val registered = preferencesManager.findRegisteredUser(userSession.email)
+                ?: return Result.error("Usuário não encontrado no cadastro.")
+            
+            if (registered.passwordKey != passwordKey) {
+                return Result.error("Senha incorreta.")
+            }
+            
+            val emailExists = preferencesManager.getRegisteredUsers().any {
+                it.user.email.equals(newEmail, ignoreCase = true) && !it.user.email.equals(userSession.email, ignoreCase = true)
+            }
+            if (emailExists) {
+                return Result.error("E-mail já cadastrado por outro usuário.")
+            }
+            
+            val success = preferencesManager.updateRegisteredUserEmail(userSession.email, newEmail)
+            if (success) {
+                val updatedUser = userSession.copy(email = newEmail)
+                preferencesManager.saveUser(updatedUser)
+                Result.success(Unit)
+            } else {
+                Result.error("Erro ao atualizar o e-mail no armazenamento local.")
+            }
+        } catch (e: Exception) {
+            Result.error("Erro ao alterar e-mail: ${e.localizedMessage}", e)
+        }
+    }
 }

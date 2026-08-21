@@ -1,6 +1,7 @@
 package com.rememberflash.app.presentation.schedule
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -220,58 +221,84 @@ fun ScheduleFormView(
             shape = RoundedCornerShape(12.dp)
         )
 
-        // Tempo Diário de Estudos (Minutos)
-        OutlinedTextField(
-            value = uiState.minutesPerDay.toString(),
-            onValueChange = { input ->
-                val value = input.filter { it.isDigit() }.toIntOrNull() ?: 0
-                onMinutesChanged(value.coerceIn(30, 720))
-            },
-            label = { Text("Tempo Diário de Estudo (Minutos)") },
-            placeholder = { Text("Ex: 120") },
+        // Tempo Diário e Máximo de Matérias lado a lado
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = uiState.minutesPerDay.toString(),
+                onValueChange = { input ->
+                    val value = input.filter { it.isDigit() }.toIntOrNull() ?: 0
+                    onMinutesChanged(value.coerceIn(30, 720))
+                },
+                label = { Text("Tempo Diário (min)") },
+                placeholder = { Text("Ex: 120") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
 
-        // Máximo de Matérias por dia
-        OutlinedTextField(
-            value = uiState.maxSubjectsPerDay.toString(),
-            onValueChange = { input ->
-                val value = input.filter { it.isDigit() }.toIntOrNull() ?: 0
-                onMaxSubjectsChanged(value.coerceIn(1, 5))
-            },
-            label = { Text("Máximo de Matérias Diárias") },
-            placeholder = { Text("Ex: 2") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
+            OutlinedTextField(
+                value = uiState.maxSubjectsPerDay.toString(),
+                onValueChange = { input ->
+                    val value = input.filter { it.isDigit() }.toIntOrNull() ?: 0
+                    onMaxSubjectsChanged(value.coerceIn(1, 5))
+                },
+                label = { Text("Máx. Matérias/dia") },
+                placeholder = { Text("Ex: 2") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+        }
 
-        // Dias Disponíveis da Semana (Checkboxes horizontais/verticais agrupados)
+        // Dias Disponíveis da Semana (Pílulas Horizontais)
         Text(
-            text = "Dias da Semana Disponíveis",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 8.dp)
+            text = "Dias disponíveis para estudo",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
         )
 
-        val weekDaysList = listOf("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
-        weekDaysList.forEach { day ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleDay(day) }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = uiState.availableDays.contains(day),
-                    onCheckedChange = { onToggleDay(day) }
-                )
-                Text(
-                    text = day,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+        val daysMap = listOf(
+            "Segunda" to "Seg",
+            "Terça" to "Ter",
+            "Quarta" to "Qua",
+            "Quinta" to "Qui",
+            "Sexta" to "Sex",
+            "Sábado" to "Sáb",
+            "Domingo" to "Dom"
+        )
+
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            daysMap.forEach { (fullDay, shortDay) ->
+                val isSelected = uiState.availableDays.contains(fullDay)
+                Surface(
+                    onClick = { onToggleDay(fullDay) },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)) else null,
+                    modifier = Modifier.height(38.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = shortDay,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                    }
+                }
             }
         }
 

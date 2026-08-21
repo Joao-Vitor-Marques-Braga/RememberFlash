@@ -52,6 +52,20 @@ internal class RegisteredUsersPreferences(
         return true
     }
 
+    fun updateEmail(oldEmail: String, newEmail: String): Boolean {
+        val users = getAll().toMutableList()
+        if (users.any { it.user.email.equals(newEmail, ignoreCase = true) && !it.user.email.equals(oldEmail, ignoreCase = true) }) {
+            return false
+        }
+        val index = users.indexOfFirst { it.user.email.equals(oldEmail, ignoreCase = true) }
+        if (index == -1) return false
+        val currentUser = users[index]
+        val updatedUser = currentUser.user.copy(email = newEmail)
+        users[index] = currentUser.copy(user = updatedUser)
+        prefs.edit { putString(PreferenceKeys.REGISTERED_USERS, gson.toJson(users)) }
+        return true
+    }
+
     private fun RegisteredUser.isSamePerson(other: RegisteredUser): Boolean =
         user.email.equals(other.user.email, ignoreCase = true) || user.cpf == other.user.cpf
 }

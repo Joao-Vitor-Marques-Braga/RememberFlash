@@ -62,6 +62,7 @@ class ScheduleTest {
         override suspend fun registerUser(name: String, cpf: String, email: String, passwordKey: String): Result<User> = Result.success(fakeUser)
         override suspend fun authenticateUser(email: String, passwordKey: String): Result<User> = Result.success(fakeUser)
         override suspend fun changePassword(currentPasswordKey: String, newPasswordKey: String): Result<Unit> = Result.success(Unit)
+        override suspend fun changeEmail(newEmail: String, passwordKey: String): Result<Unit> = Result.success(Unit)
     }
 
     class FakeContestRepository(var contest: Contest) : ContestRepository {
