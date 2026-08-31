@@ -1,9 +1,16 @@
 package com.rememberflash.app.data.remote.gemini
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.rememberflash.app.data.local.preferences.SecurePreferencesManager
 import com.rememberflash.app.domain.usecase.essay.EvaluateEssayUseCase
+import com.rememberflash.app.domain.usecase.essay.ExtractTextFromImageUseCase
+import com.rememberflash.app.presentation.essay.capture.util.ImageUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,12 +19,16 @@ import javax.inject.Singleton
  * Bloqueia todas as requisições de geração até que uma API Key válida
  * seja informada nas preferências do usuário.
  *
- * Implementa [EvaluateEssayUseCase.EssayEvaluator] para avaliação de redações.
+ * Implementa [EvaluateEssayUseCase.EssayEvaluator] para avaliação de redações
+ * e [ExtractTextFromImageUseCase.HandwrittenTranscriber] para transcrição OCR de caligrafia cursiva.
  */
 @Singleton
 class GeminiClient @Inject constructor(
-    private val preferencesManager: SecurePreferencesManager
-) : EvaluateEssayUseCase.EssayEvaluator, GeminiScheduleClient {
+    private val preferencesManager: SecurePreferencesManager,
+    @ApplicationContext private val context: Context
+) : EvaluateEssayUseCase.EssayEvaluator,
+    GeminiScheduleClient,
+    ExtractTextFromImageUseCase.HandwrittenTranscriber {
 
     private var cachedModel: GenerativeModel? = null
     private var cachedApiKey: String? = null
@@ -80,10 +91,55 @@ class GeminiClient @Inject constructor(
         }
     }
 
-    override suspend fun evaluate(essayText: String, theme: String): String {
-        val rigor = preferencesManager.getRigor()
-        val tone = preferencesManager.getTone()
-        val prompt = PromptTemplates.buildEssayEvaluationPrompt(essayText, theme, rigor, tone)
+    suspend fun generateContentWithImage(prompt: String, bitmap: Bitmap): String {
+        val model = getOrCreateModel()
+        GeminiTokenTracker.reset()
+        try {
+            val contentInput = content {
+                image(bitmap)
+                text(prompt)
+            }
+            val response = model.generateContent(contentInput)
+            val inTokens = response.usageMetadata?.promptTokenCount ?: 0
+            val outTokens = response.usageMetadata?.candidatesTokenCount ?: 0
+
+            GeminiTokenTracker.lastInputTokens = inTokens
+            GeminiTokenTracker.lastOutputTokens = outTokens
+            GeminiTokenTracker.recordOcrUsage(inTokens, outTokens)
+
+            return response.text
+                ?: throw IllegalStateException("Resposta vazia do modelo Gemini ao processar a imagem")
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiClient", "Erro na geração com imagem do Gemini", e)
+            throw e
+        }
+    }
+
+    suspend fun transcribeHandwrittenEssay(bitmap: Bitmap): String {
+        val prompt = PromptTemplates.buildEssayTranscribePrompt()
+        return generateContentWithImage(prompt, bitmap)
+    }
+
+    override suspend fun transcribeHandwritten(imageUri: Uri): String {
+        val bitmap = ImageUtils.loadRotatedBitmap(context, imageUri)
+            ?: throw IllegalArgumentException("Não foi possível carregar a imagem da redação.")
+        return transcribeHandwrittenEssay(bitmap)
+    }
+
+    override suspend fun evaluate(
+        essayText: String,
+        theme: String,
+        banca: String,
+        rigor: String,
+        tone: String
+    ): String {
+        val prompt = PromptTemplates.buildEssayEvaluationPrompt(
+            essayText = essayText,
+            theme = theme,
+            banca = banca,
+            rigor = rigor,
+            tone = tone
+        )
         return generateContent(prompt)
     }
 

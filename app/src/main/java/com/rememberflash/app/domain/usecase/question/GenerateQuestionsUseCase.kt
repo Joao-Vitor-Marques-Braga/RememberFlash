@@ -51,7 +51,7 @@ class GenerateQuestionsUseCase @Inject constructor(
                 else -> return Result.error("Concurso não encontrado")
             }
 
-            val difficulty = preferencesManager.getDifficulty()
+            val difficulty = contest.aiDifficulty.ifBlank { preferencesManager.getDifficulty() }
             val format = if (contest.questionType.contains("Certo/Errado", ignoreCase = true)) {
                 "Certo/Errado"
             } else {

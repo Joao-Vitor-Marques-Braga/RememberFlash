@@ -1,6 +1,8 @@
 package com.rememberflash.app.presentation.essay.capture
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,8 +26,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.rememberflash.app.presentation.essay.capture.components.ImageCropperDialog
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,14 +43,70 @@ fun EssayCaptureScreen(
     val context = LocalContext.current
 
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var rawImageUriForCrop by remember { mutableStateOf<Uri?>(null) }
+
+    fun generateTempUri(ctx: Context): Uri? {
+        return try {
+            val imagesDir = File(ctx.cacheDir, "images").apply {
+                if (!exists()) mkdirs()
+            }
+            val tempFile = File.createTempFile("essay_cap_", ".jpg", imagesDir)
+            FileProvider.getUriForFile(
+                ctx,
+                "${ctx.packageName}.provider",
+                tempFile
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
             tempPhotoUri?.let { uri ->
-                viewModel.onImageSelected(uri)
+                rawImageUriForCrop = uri
             }
+        }
+    }
+
+    fun launchCameraDirectly() {
+        val uri = generateTempUri(context)
+        if (uri != null) {
+            tempPhotoUri = uri
+            try {
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                viewModel.setError("Não foi possível abrir a câmera: ${e.localizedMessage ?: "Aplicativo de câmera não encontrado."}")
+            }
+        } else {
+            viewModel.setError("Erro ao preparar o arquivo seguro para armazenamento da foto.")
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCameraDirectly()
+        } else {
+            viewModel.setError("A permissão de acesso à câmera é necessária para fotografar a folha de redação.")
+        }
+    }
+
+    fun requestAndLaunchCamera() {
+        val permission = Manifest.permission.CAMERA
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            launchCameraDirectly()
+        } else {
+            cameraPermissionLauncher.launch(permission)
         }
     }
 
@@ -54,7 +114,7 @@ fun EssayCaptureScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            viewModel.onImageSelected(uri)
+            rawImageUriForCrop = uri
         }
     }
 
@@ -66,20 +126,25 @@ fun EssayCaptureScreen(
         }
     }
 
-    fun generateTempUri(ctx: Context): Uri {
-        val tempFile = File.createTempFile("essay_cap_", ".jpg", ctx.cacheDir)
-        return FileProvider.getUriForFile(
-            ctx,
-            "${ctx.packageName}.provider",
-            tempFile
-        )
-    }
-
     // Navega para os resultados quando a avaliação der certo
     LaunchedEffect(uiState.successEssayId) {
         uiState.successEssayId?.let { essayId ->
             onNavigateToResult(essayId)
         }
+    }
+
+    // Modal de seleção e corte de quadro da imagem para OCR
+    rawImageUriForCrop?.let { rawUri ->
+        ImageCropperDialog(
+            imageUri = rawUri,
+            onCropConfirmed = { croppedUri ->
+                rawImageUriForCrop = null
+                viewModel.onImageSelected(croppedUri)
+            },
+            onDismiss = {
+                rawImageUriForCrop = null
+            }
+        )
     }
 
     Scaffold(
@@ -201,6 +266,81 @@ fun EssayCaptureScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(24.dp)
                 ) {
+                    // Seleção do Concurso Pai
+                    Text(
+                        text = "Concurso Vinculado",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    if (uiState.availableContests.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Nenhum concurso cadastrado. Cadastre um concurso primeiro para definir a banca examinadora e critérios de correção.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    } else {
+                        var isContestMenuExpanded by remember { mutableStateOf(false) }
+                        val selectedContest = uiState.availableContests.firstOrNull { it.id == uiState.selectedContestId }
+                            ?: uiState.availableContests.first()
+
+                        ExposedDropdownMenuBox(
+                            expanded = isContestMenuExpanded,
+                            onExpandedChange = { isContestMenuExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = "${selectedContest.title} (Banca: ${selectedContest.organizerName.ifBlank { "Geral" }})",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Concurso e Banca Examinadora") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isContestMenuExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = isContestMenuExpanded,
+                                onDismissRequest = { isContestMenuExpanded = false }
+                            ) {
+                                uiState.availableContests.forEach { contest ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(contest.title, fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    "Banca: ${contest.organizerName.ifBlank { "Geral" }} • Rigor: ${contest.aiRigor}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            viewModel.onContestSelected(contest.id)
+                                            isContestMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     // Campo Tema
                     OutlinedTextField(
                         value = uiState.theme,
@@ -227,11 +367,7 @@ fun EssayCaptureScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Button(
-                                    onClick = {
-                                        val uri = generateTempUri(context)
-                                        tempPhotoUri = uri
-                                        cameraLauncher.launch(uri)
-                                    },
+                                    onClick = { requestAndLaunchCamera() },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
@@ -308,7 +444,7 @@ fun EssayCaptureScreen(
                     }
 
                     if (uiState.isOcrLoading) {
-                        // Loader OCR local
+                        // Loader OCR / Transcrição
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -319,7 +455,7 @@ fun EssayCaptureScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Extraindo texto da folha manuscrita localmente...",
+                                    text = "Transcrevendo caligrafia manuscrita com Inteligência Artificial...",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     textAlign = TextAlign.Center
@@ -328,11 +464,28 @@ fun EssayCaptureScreen(
                         }
                     } else if (uiState.text.isNotBlank() || uiState.method == SubmissionMethod.TYPING) {
                         // Campo de Revisão / Digitação Livre
-                        Text(
-                            text = if (uiState.method == SubmissionMethod.CAMERA) "Revisão Humana (OCR)" else "Texto da Redação",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (uiState.method == SubmissionMethod.CAMERA) "Revisão do Texto (OCR)" else "Texto da Redação",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            // No modo digitação, botão rápido para também poder extrair texto via foto se desejar
+                            if (uiState.method == SubmissionMethod.TYPING) {
+                                TextButton(
+                                    onClick = { requestAndLaunchCamera() }
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Escanear Foto", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = uiState.text,

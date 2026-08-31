@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Essay
 import com.rememberflash.app.domain.repository.AuthRepository
+import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.EssayRepository
 import com.rememberflash.app.domain.usecase.essay.EvaluateEssayUseCase
 import com.rememberflash.app.domain.usecase.essay.ExtractTextFromImageUseCase
@@ -21,11 +22,35 @@ class EssayCaptureViewModel @Inject constructor(
     private val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
     private val evaluateEssayUseCase: EvaluateEssayUseCase,
     private val essayRepository: EssayRepository,
+    private val contestRepository: ContestRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EssayCaptureUiState())
     val uiState: StateFlow<EssayCaptureUiState> = _uiState.asStateFlow()
+
+    init {
+        loadUserContests()
+    }
+
+    private fun loadUserContests() {
+        viewModelScope.launch {
+            val sessionResult = authRepository.getCurrentSession()
+            if (sessionResult is Result.Success) {
+                val userId = sessionResult.data.id
+                contestRepository.getActiveContestsByUser(userId).collect { contests ->
+                    _uiState.value = _uiState.value.copy(
+                        availableContests = contests,
+                        selectedContestId = _uiState.value.selectedContestId ?: contests.firstOrNull()?.id
+                    )
+                }
+            }
+        }
+    }
+
+    fun onContestSelected(contestId: Long) {
+        _uiState.value = _uiState.value.copy(selectedContestId = contestId, error = null)
+    }
 
     fun onMethodSelected(method: SubmissionMethod) {
         _uiState.value = _uiState.value.copy(method = method, error = null)
@@ -85,6 +110,13 @@ class EssayCaptureViewModel @Inject constructor(
 
     fun onEvaluateClicked() {
         val state = _uiState.value
+
+        if (state.selectedContestId == null || state.availableContests.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                error = "Selecione o concurso correspondente à redação para aplicarmos a banca e os critérios corretos."
+            )
+            return
+        }
         
         if (state.theme.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Por favor, defina o tema da redação.")
@@ -114,6 +146,7 @@ class EssayCaptureViewModel @Inject constructor(
             val userId = sessionResult.data.id
             val essay = Essay(
                 userId = userId,
+                contestId = state.selectedContestId,
                 title = "Redação: ${state.theme.take(30)}...",
                 theme = state.theme,
                 imageUri = state.pdfUri?.toString() ?: state.imageUri?.toString() ?: "",
@@ -126,7 +159,7 @@ class EssayCaptureViewModel @Inject constructor(
             if (insertResult is Result.Success) {
                 val essayId = insertResult.data
                 
-                // Solicita a avaliação do Gemini
+                // Solicita a avaliação do Gemini com injeção do concurso pai
                 val evalResult = evaluateEssayUseCase(essay.copy(id = essayId))
                 
                 when (evalResult) {
@@ -151,6 +184,10 @@ class EssayCaptureViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun setError(message: String) {
+        _uiState.value = _uiState.value.copy(error = message, isOcrLoading = false)
     }
 
     fun clearError() {

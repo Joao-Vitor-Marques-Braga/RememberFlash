@@ -43,6 +43,15 @@ data class ContestEntity(
     @ColumnInfo(name = "prohibited_items")
     val prohibitedItems: String? = null,
 
+    @ColumnInfo(name = "ai_difficulty", defaultValue = "'Médio'")
+    val aiDifficulty: String = "Médio",
+
+    @ColumnInfo(name = "ai_rigor", defaultValue = "'Padrão'")
+    val aiRigor: String = "Padrão",
+
+    @ColumnInfo(name = "ai_tone", defaultValue = "'Explicativo'")
+    val aiTone: String = "Explicativo",
+
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
 

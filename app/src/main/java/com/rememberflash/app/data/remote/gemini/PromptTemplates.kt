@@ -7,16 +7,46 @@ package com.rememberflash.app.data.remote.gemini
  */
 object PromptTemplates {
 
+    fun buildEssayTranscribePrompt(): String = """
+        |Você é um especialista em OCR e transcrição paleográfica de redações manuscritas em português brasileiro.
+        |Transcreva fielmente todo o texto manuscrito presente na imagem da folha de redação.
+        |
+        |DIRETRIZES RÍGIDAS:
+        |1. Transcreva exatamente as palavras, pontuações, acentos e quebras de linha/parágrafo escritas pelo autor.
+        |2. Mantenha os parágrafos separados por uma linha em branco.
+        |3. Corrija apenas erros óbvios de legibilidade da caligrafia cursiva, mantendo o conteúdo, estrutura e vocabulário originais.
+        |4. NÃO adicione introdução, saudações, explicações, aspas extras ou notas adicionais.
+        |5. Retorne APENAS o texto puro transcrito da redação.
+    """.trimMargin()
+
     fun buildEssayEvaluationPrompt(
         essayText: String,
         theme: String,
+        banca: String,
         rigor: String,
         tone: String
-    ): String = """
-        |Você é um examinador e avaliador especialista em redações de vestibulares e concursos públicos, com foco nos critérios da banca UniRV (Universidade de Rio Verde).
+    ): String {
+        val bancaDirective = when {
+            banca.contains("CEBRASPE", ignoreCase = true) || banca.contains("CESPE", ignoreCase = true) ->
+                "BANCA EXAMINADORA: CEBRASPE / CESPE. Aplique rigorosamente a metodologia do CEBRASPE: avaliação de Apresentação e Estrutura Textual (legibilidade, respeito às margens e paragrafação), Desenvolvimento do Tema (progressão lógica e profundidade dos tópicos) e Domínio da Modalidade Escrita / Norma Culta (descontos objetivos de microestrutura: grafia, acentuação, pontuação, morfossintaxe e regência)."
+            banca.contains("FGV", ignoreCase = true) ->
+                "BANCA EXAMINADORA: FGV (Fundação Getulio Vargas). Aplique o padrão FGV: foco extremo na consistência argumentativa, pertinência vocabular precisa, estruturação de parágrafos sem clichês, e domínio impecável da norma culta."
+            banca.contains("FCC", ignoreCase = true) ->
+                "BANCA EXAMINADORA: FCC (Fundação Carlos Chagas). Aplique o padrão FCC: avaliação dividida em Conteúdo (perspectiva adotada e capacidade de reflexão crítica), Estrutura (coesão, encadeamento e articulação das frases) e Expressão (adequação vocabular, concordância, regência e pontuação)."
+            banca.contains("VUNESP", ignoreCase = true) ->
+                "BANCA EXAMINADORA: VUNESP. Aplique o padrão VUNESP: Critério A (Tema e abordagem crítica), Critério B (Gênero dissertativo, estrutura e progressão), Critério C (Coesão, coerência e modalidade escrita)."
+            banca.contains("UNIRV", ignoreCase = true) ->
+                "BANCA EXAMINADORA: UniRV (Universidade de Rio Verde). Avalie pelas 5 competências (Adequação ao Tema, Norma Culta, Argumentação, Coesão/Coerência e Conclusão), com nota total de 0.0 a 10.0."
+            else ->
+                "BANCA EXAMINADORA: $banca. Avalie adotando os critérios formais e a matriz de correção típica desta banca examinadora em concursos públicos de alto nível."
+        }
+
+        return """
+        |Você é um examinador e avaliador especialista em redações de vestibulares e concursos públicos.
+        |$bancaDirective
         |Avalie minuciosamente o texto abaixo, sendo justo, criterioso e realista na atribuição de notas.
         |
-        |DIRETRIZES DE AVALIAÇÃO DA BANCA UNIRV:
+        |DIRETRIZES DE AVALIAÇÃO:
         |A nota final varia de 0.0 a 10.0 e deve corresponder EXATAMENTE à soma das 5 competências avaliadas (cada uma valendo de 0.0 a 2.0):
         |
         |1. Adequação ao Tema e Gênero Textual (0.0 a 2.0):
@@ -49,9 +79,10 @@ object PromptTemplates {
         |   - 1.0: Conclusão abrupta ou que insere novos argumentos sem fechamento.
         |   - 0.5 ou menor: Ausência de conclusão ou texto inacabado.
         |
-        |CRITÉRIOS DE PERSONALIZAÇÃO DO USUÁRIO:
-        |- Rigor na Correção: $rigor. (Se for 'Rígido', seja implacável com desvios gramaticais e argumentação fraca. Se for 'Flexível', valorize mais o esforço e a clareza geral. Se for 'Padrão', siga estritamente o padrão da banca UniRV).
-        |- Tom do Feedback: $tone. (Se for 'Direto/Objetivo', seja sucinto e aponte os erros e acertos diretamente. Se for 'Explicativo/Detalhado', explique a regra gramatical/argumentativa e dê exemplos de como melhorar).
+        |CONFIGURAÇÕES DO CONCURSO ATIVO:
+        |- Banca Examinadora: $banca
+        |- Rigor na Correção: $rigor. (Se for 'Rigoroso' ou 'Rígido', seja implacável com desvios gramaticais e argumentação fraca. Se for 'Flexível', valorize mais o esforço e a clareza geral. Se for 'Padrão', siga estritamente o padrão da banca examinadora).
+        |- Tom do Feedback: $tone. (Se for 'Direto', seja sucinto e aponte os erros e acertos diretamente. Se for 'Explicativo', explique a regra gramatical/argumentativa e dê exemplos de como melhorar. Se for 'Descontraído', use uma linguagem encorajadora e amigável).
         |
         |TEMA DA PROPOSTA: $theme
         |
@@ -95,7 +126,8 @@ object PromptTemplates {
         |  "pontos_fortes": ["<ponto 1>", "<ponto 2>"],
         |  "sugestoes_melhoria": ["<sugestão 1>", "<sugestão 2>"]
         |}
-    """.trimMargin()
+        """.trimMargin()
+    }
 
     fun buildFlashcardExtractionPrompt(
         rawText: String,

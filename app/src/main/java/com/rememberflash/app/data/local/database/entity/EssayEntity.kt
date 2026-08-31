@@ -13,7 +13,7 @@ import androidx.room.PrimaryKey
             entity = ContestEntity::class,
             parentColumns = ["id"],
             childColumns = ["contest_id"],
-            onDelete = ForeignKey.SET_NULL
+            onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [Index("contest_id"), Index("user_id")]
@@ -26,7 +26,7 @@ data class EssayEntity(
     val userId: String,
 
     @ColumnInfo(name = "contest_id")
-    val contestId: Long? = null,
+    val contestId: Long,
 
     val title: String,
 

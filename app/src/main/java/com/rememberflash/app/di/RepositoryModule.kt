@@ -63,6 +63,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindHandwrittenTranscriber(impl: GeminiClient): ExtractTextFromImageUseCase.HandwrittenTranscriber
+
+    @Binds
+    @Singleton
     abstract fun bindEssayEvaluator(impl: GeminiClient): EvaluateEssayUseCase.EssayEvaluator
 
     @Binds

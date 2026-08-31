@@ -28,6 +28,9 @@ data class ContestFormUiState(
     val questionType: String = "Múltipla Escolha",
     val pdfAttachments: List<PdfAttachment> = emptyList(),
     val jobPosition: String = "",
+    val aiDifficulty: String = "Médio",
+    val aiRigor: String = "Padrão",
+    val aiTone: String = "Explicativo",
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val error: String? = null,
@@ -79,6 +82,9 @@ class ContestFormViewModel @Inject constructor(
                         questionType = contest.questionType,
                         pdfAttachments = attachments,
                         jobPosition = jobFromDesc,
+                        aiDifficulty = contest.aiDifficulty.ifBlank { "Médio" },
+                        aiRigor = contest.aiRigor.ifBlank { "Padrão" },
+                        aiTone = contest.aiTone.ifBlank { "Explicativo" },
                         isLoading = false
                     )
                 }
@@ -107,6 +113,18 @@ class ContestFormViewModel @Inject constructor(
 
     fun onQuestionTypeChanged(type: String) {
         _uiState.value = _uiState.value.copy(questionType = type)
+    }
+
+    fun onAiDifficultyChanged(difficulty: String) {
+        _uiState.value = _uiState.value.copy(aiDifficulty = difficulty)
+    }
+
+    fun onAiRigorChanged(rigor: String) {
+        _uiState.value = _uiState.value.copy(aiRigor = rigor)
+    }
+
+    fun onAiToneChanged(tone: String) {
+        _uiState.value = _uiState.value.copy(aiTone = tone)
     }
 
     fun addPdfAttachment(uri: String, name: String) {
@@ -166,7 +184,10 @@ class ContestFormViewModel @Inject constructor(
                 description = "Cargo: ${state.jobPosition}",
                 organizerName = state.organizerName,
                 questionType = state.questionType,
-                syllabusPdfUri = syllabusPdfUriMerged
+                syllabusPdfUri = syllabusPdfUriMerged,
+                aiDifficulty = state.aiDifficulty,
+                aiRigor = state.aiRigor,
+                aiTone = state.aiTone
             )
 
             val result = if (state.id == null) {
