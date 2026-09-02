@@ -59,6 +59,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+            all {
+                it.jvmArgs("-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8")
+                it.systemProperty("file.encoding", "UTF-8")
+                it.systemProperty("sun.jnu.encoding", "UTF-8")
+            }
+        }
+    }
 }
 
 dependencies {

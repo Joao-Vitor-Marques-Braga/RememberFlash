@@ -122,7 +122,7 @@ class ProfileViewModel @Inject constructor(
             _uiState.update { it.copy(emailChangeError = "E-mail e senha de confirmação são obrigatórios.") }
             return
         }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(state.newEmailText).matches()) {
+        if (!EMAIL_REGEX.matches(state.newEmailText)) {
             _uiState.update { it.copy(emailChangeError = "Formato de e-mail inválido.") }
             return
         }
@@ -166,5 +166,9 @@ class ProfileViewModel @Inject constructor(
             authRepository.clearSession()
             _uiState.update { it.copy(isLoggedOut = true) }
         }
+    }
+
+    companion object {
+        private val EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
     }
 }
