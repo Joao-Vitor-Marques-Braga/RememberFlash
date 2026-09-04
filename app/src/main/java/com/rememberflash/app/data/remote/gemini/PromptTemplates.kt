@@ -247,7 +247,7 @@ object PromptTemplates {
         |5. Locais de aplicação da prova.
         |6. Especificação da caneta permitida (cor da tinta e material do tubo).
         |7. Lista de itens permitidos e proibidos de portar/levar.
-        |8. O conjunto completo de disciplinas exigidas no conteúdo programático EXCLUSIVAMENTE para o cargo de "$jobPosition". Tente identificar o número de questões ou peso de cada disciplina para este cargo. Se não estiver explícito, atribua um valor proporcional adequado (ex: 10 para as mais importantes, 5 para as básicas).
+        |8. O conjunto completo de disciplinas exigidas no conteúdo programático EXCLUSIVAMENTE para o cargo de "$jobPosition". Para cada disciplina, extraia minuciosamente a lista de SUBTÓPICOS/SUBMATÉRIAS (itens numerados ou tópicos temáticos da ementa). Tente identificar o número de questões ou peso de cada disciplina para este cargo. Se não estiver explícito, atribua um valor proporcional adequado (ex: 10 para as mais importantes, 5 para as básicas).
         |
         |{
         |  "title": "Nome simplificado do concurso (Ex: INSS, Banco do Brasil, Polícia Federal)",
@@ -260,8 +260,15 @@ object PromptTemplates {
         |  "prohibitedItems": ["item 1", "item 2"],
         |  "disciplines": [
         |    {
-        |      "name": "Nome da disciplina (Ex: Língua Portuguesa)",
-        |      "weight": <número de questões ou peso do edital (Ex: 10.0 ou 15.0)>
+        |      "name": "Nome da disciplina (Ex: Banco de Dados)",
+        |      "weight": <número de questões ou peso do edital (Ex: 10.0 ou 15.0)>,
+        |      "topics": [
+        |        "Modelagem de dados: modelo entidade-relacionamento, normalização e desnormalização",
+        |        "Linguagem SQL; álgebra relacional; transações e propriedades ACID",
+        |        "Índices e otimização de consultas",
+        |        "Bancos de dados NoSQL: MongoDB, Redis, Cassandra",
+        |        "Segurança, backup e integridade de dados"
+        |      ]
         |    }
         |  ]
         |}

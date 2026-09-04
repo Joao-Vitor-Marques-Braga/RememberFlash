@@ -7,6 +7,7 @@ import com.rememberflash.app.domain.model.FlashcardSource
 fun FlashcardEntity.toDomain(): Flashcard = Flashcard(
     id = id,
     disciplineId = disciplineId,
+    topicId = topicId,
     front = front,
     back = back,
     source = try { FlashcardSource.valueOf(source) } catch (_: Exception) { FlashcardSource.MANUAL },
@@ -21,6 +22,7 @@ fun FlashcardEntity.toDomain(): Flashcard = Flashcard(
 fun Flashcard.toEntity(): FlashcardEntity = FlashcardEntity(
     id = id,
     disciplineId = disciplineId,
+    topicId = topicId,
     front = front,
     back = back,
     source = source.name,

@@ -16,6 +16,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+import com.rememberflash.app.data.local.database.dao.TopicDao
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -31,7 +33,8 @@ object DatabaseModule {
             .addMigrations(
                 RememberFlashDatabase.MIGRATION_1_2,
                 RememberFlashDatabase.MIGRATION_2_3,
-                RememberFlashDatabase.MIGRATION_3_4
+                RememberFlashDatabase.MIGRATION_3_4,
+                RememberFlashDatabase.MIGRATION_10_11
             )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
@@ -42,6 +45,9 @@ object DatabaseModule {
 
     @Provides
     fun provideDisciplineDao(database: RememberFlashDatabase): DisciplineDao = database.disciplineDao()
+
+    @Provides
+    fun provideTopicDao(database: RememberFlashDatabase): TopicDao = database.topicDao()
 
     @Provides
     fun provideFlashcardDao(database: RememberFlashDatabase): FlashcardDao = database.flashcardDao()

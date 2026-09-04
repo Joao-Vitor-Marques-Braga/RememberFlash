@@ -19,6 +19,7 @@ fun QuestionEntity.toDomain(): Question {
     return Question(
         id = id,
         disciplineId = disciplineId,
+        topicId = topicId,
         statement = statement,
         options = optionsList,
         correctIndex = correctIndex,
@@ -42,6 +43,7 @@ fun Question.toEntity(): QuestionEntity {
     return QuestionEntity(
         id = id,
         disciplineId = disciplineId,
+        topicId = topicId,
         statement = statement,
         optionsJson = optionsJsonString,
         correctIndex = correctIndex,

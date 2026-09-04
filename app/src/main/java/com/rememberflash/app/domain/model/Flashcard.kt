@@ -14,6 +14,7 @@ enum class FlashcardSource {
 data class Flashcard(
     val id: Long = 0L,
     val disciplineId: Long,
+    val topicId: Long? = null,
     val front: String,
     val back: String,
     val source: FlashcardSource = FlashcardSource.MANUAL,

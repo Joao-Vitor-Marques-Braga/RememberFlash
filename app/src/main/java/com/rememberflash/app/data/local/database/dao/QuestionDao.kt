@@ -38,4 +38,10 @@ interface QuestionDao {
         """
     )
     suspend fun resetAnswersForContest(contestId: Long)
+
+    @Query("SELECT * FROM questions WHERE topic_id = :topicId ORDER BY created_at DESC")
+    fun getByTopic(topicId: Long): Flow<List<QuestionEntity>>
+
+    @Query("SELECT COUNT(*) FROM questions WHERE topic_id = :topicId")
+    suspend fun countByTopic(topicId: Long): Int
 }

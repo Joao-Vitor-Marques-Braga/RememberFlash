@@ -27,9 +27,20 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.rememberflash.app.domain.usecase.topic.CreateTopicUseCase
+import com.rememberflash.app.domain.usecase.topic.DeleteTopicUseCase
+import com.rememberflash.app.domain.usecase.topic.GetTopicsByDisciplineUseCase
+import com.rememberflash.app.domain.usecase.topic.ToggleTopicCompletionUseCase
+import com.rememberflash.app.domain.usecase.topic.UpdateTopicUseCase
+
 @HiltViewModel
 class DisciplineViewModel @Inject constructor(
     private val getDisciplineByIdUseCase: GetDisciplineByIdUseCase,
+    private val getTopicsByDisciplineUseCase: GetTopicsByDisciplineUseCase,
+    private val createTopicUseCase: CreateTopicUseCase,
+    private val toggleTopicCompletionUseCase: ToggleTopicCompletionUseCase,
+    private val deleteTopicUseCase: DeleteTopicUseCase,
+    private val updateTopicUseCase: UpdateTopicUseCase,
     private val getFlashcardsByDisciplineUseCase: GetFlashcardsByDisciplineUseCase,
     private val getQuestionsByDisciplineUseCase: GetQuestionsByDisciplineUseCase,
     private val createFlashcardUseCase: CreateFlashcardUseCase,
@@ -81,6 +92,16 @@ class DisciplineViewModel @Inject constructor(
 
     private fun observeData() {
         viewModelScope.launch {
+            getTopicsByDisciplineUseCase(disciplineId).collectLatest { topics ->
+                _uiState.value = _uiState.value.copy(topics = topics)
+                // Recarrega os dados da disciplina para refletir contadores atualizados
+                when (val result = getDisciplineByIdUseCase(disciplineId)) {
+                    is Result.Success -> _uiState.value = _uiState.value.copy(discipline = result.data)
+                    else -> {}
+                }
+            }
+        }
+        viewModelScope.launch {
             getFlashcardsByDisciplineUseCase(disciplineId).collectLatest { flashcards ->
                 _uiState.value = _uiState.value.copy(flashcards = flashcards)
             }
@@ -93,6 +114,40 @@ class DisciplineViewModel @Inject constructor(
         viewModelScope.launch {
             questionRepository.getAttemptsByDiscipline(disciplineId).collectLatest { attempts ->
                 _uiState.value = _uiState.value.copy(attempts = attempts)
+            }
+        }
+    }
+
+    fun selectTopic(topicId: Long?) {
+        _uiState.value = _uiState.value.copy(selectedTopicId = topicId)
+    }
+
+    fun toggleTopicCompletion(topicId: Long, isCompleted: Boolean) {
+        viewModelScope.launch {
+            toggleTopicCompletionUseCase(topicId, isCompleted)
+        }
+    }
+
+    fun createTopic(name: String, description: String? = null, onSuccess: () -> Unit = {}) {
+        val contestId = _uiState.value.discipline?.contestId ?: return
+        viewModelScope.launch {
+            when (val result = createTopicUseCase(disciplineId, contestId, name, description)) {
+                is Result.Success -> {
+                    onSuccess()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(error = result.message)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    fun deleteTopic(topicId: Long) {
+        viewModelScope.launch {
+            deleteTopicUseCase(topicId)
+            if (_uiState.value.selectedTopicId == topicId) {
+                _uiState.value = _uiState.value.copy(selectedTopicId = null)
             }
         }
     }
@@ -227,12 +282,13 @@ class DisciplineViewModel @Inject constructor(
     }
 
     // Manual CRUD (RF006)
-    suspend fun createManualFlashcard(front: String, back: String): Result<Long> {
+    suspend fun createManualFlashcard(front: String, back: String, topicId: Long? = null): Result<Long> {
         if (front.isBlank() || back.isBlank()) {
             return Result.error("A frente e o verso do cartão são obrigatórios.")
         }
         val card = Flashcard(
             disciplineId = disciplineId,
+            topicId = topicId,
             front = front,
             back = back,
             source = FlashcardSource.MANUAL,
@@ -241,13 +297,14 @@ class DisciplineViewModel @Inject constructor(
         return createFlashcardUseCase(card)
     }
 
-    suspend fun updateManualFlashcard(card: Flashcard, front: String, back: String): Result<Unit> {
+    suspend fun updateManualFlashcard(card: Flashcard, front: String, back: String, topicId: Long? = null): Result<Unit> {
         if (front.isBlank() || back.isBlank()) {
             return Result.error("A frente e o verso do cartão são obrigatórios.")
         }
         val updatedCard = card.copy(
             front = front,
             back = back,
+            topicId = topicId ?: card.topicId,
             isSynced = false
         )
         return updateFlashcardUseCase(updatedCard)

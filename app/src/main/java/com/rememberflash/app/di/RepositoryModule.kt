@@ -43,6 +43,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindTopicRepository(impl: com.rememberflash.app.data.repository.TopicRepositoryImpl): com.rememberflash.app.domain.repository.TopicRepository
+
+    @Binds
+    @Singleton
     abstract fun bindFlashcardRepository(impl: FlashcardRepositoryImpl): FlashcardRepository
 
     @Binds

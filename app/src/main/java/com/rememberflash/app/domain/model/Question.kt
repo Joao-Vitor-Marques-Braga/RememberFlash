@@ -8,6 +8,7 @@ enum class QuestionSource {
 data class Question(
     val id: Long = 0L,
     val disciplineId: Long,
+    val topicId: Long? = null,
     val statement: String,
     val options: List<String>,
     val correctIndex: Int,

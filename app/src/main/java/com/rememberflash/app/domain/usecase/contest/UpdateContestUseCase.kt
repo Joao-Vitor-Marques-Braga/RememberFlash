@@ -10,8 +10,10 @@ import com.rememberflash.app.data.remote.gemini.GeminiClient
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.model.Discipline
+import com.rememberflash.app.domain.model.Topic
 import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.DisciplineRepository
+import com.rememberflash.app.domain.repository.TopicRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -19,6 +21,7 @@ import javax.inject.Inject
 class UpdateContestUseCase @Inject constructor(
     private val contestRepository: ContestRepository,
     private val disciplineRepository: DisciplineRepository,
+    private val topicRepository: TopicRepository,
     private val geminiClient: GeminiClient,
     @ApplicationContext private val context: Context
 ) {
@@ -128,7 +131,7 @@ class UpdateContestUseCase @Inject constructor(
                 updatedAt = System.currentTimeMillis()
             )
 
-            onProgress("Atualizando disciplinas e finalizando...")
+            onProgress("Atualizando disciplinas e subtópicos da ementa...")
             
             // 1. Atualiza o concurso no banco
             val updateResult = contestRepository.update(updatedContest)
@@ -141,15 +144,34 @@ class UpdateContestUseCase @Inject constructor(
                         disciplineRepository.delete(discipline.id)
                     }
 
-                    // Insere as novas disciplinas extraídas
+                    // Insere as novas disciplinas extraídas com seus subtópicos
+                    val now = System.currentTimeMillis()
                     discList.forEach { parsedDisc ->
-                        disciplineRepository.insert(
+                        val topicsList = parsedDisc.topics?.filter { it.isNotBlank() } ?: emptyList()
+                        val discInsertResult = disciplineRepository.insert(
                             Discipline(
                                 contestId = contest.id,
                                 name = parsedDisc.name,
-                                weight = parsedDisc.weight ?: 10.0
+                                weight = parsedDisc.weight ?: 10.0,
+                                totalTopics = topicsList.size,
+                                completedTopics = 0
                             )
                         )
+
+                        if (discInsertResult is Result.Success && topicsList.isNotEmpty()) {
+                            val disciplineId = discInsertResult.data
+                            val topicModels = topicsList.mapIndexed { index, topicName ->
+                                Topic(
+                                    disciplineId = disciplineId,
+                                    contestId = contest.id,
+                                    name = topicName.trim(),
+                                    orderIndex = index,
+                                    isCompleted = false,
+                                    createdAt = now
+                                )
+                            }
+                            topicRepository.insertAll(topicModels)
+                        }
                     }
                 }
             }
@@ -175,7 +197,9 @@ class UpdateContestUseCase @Inject constructor(
         @SerializedName(value = "name", alternate = ["nome", "nome_disciplina", "disciplina"])
         val name: String,
         @SerializedName(value = "weight", alternate = ["peso", "questoes", "questões", "quantidade_questoes"])
-        val weight: Double? = null
+        val weight: Double? = null,
+        @SerializedName(value = "topics", alternate = ["topicos", "tópicos", "submaterias", "submatérias", "subtopicos", "subtópicos", "ementa", "conteudo", "conteúdo"])
+        val topics: List<String>? = null
     )
 
     private data class ParsedEdital(

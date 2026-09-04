@@ -14,9 +14,15 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["discipline_id"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = TopicEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["topic_id"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("discipline_id")]
+    indices = [Index("discipline_id"), Index("topic_id")]
 )
 data class QuestionEntity(
     @PrimaryKey(autoGenerate = true)
@@ -24,6 +30,9 @@ data class QuestionEntity(
 
     @ColumnInfo(name = "discipline_id")
     val disciplineId: Long,
+
+    @ColumnInfo(name = "topic_id")
+    val topicId: Long? = null,
 
     val statement: String,
 

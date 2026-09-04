@@ -59,4 +59,10 @@ interface FlashcardDao {
 
     @Query("UPDATE flashcards SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markFlashcardsAsSynced(ids: List<Long>)
+
+    @Query("SELECT * FROM flashcards WHERE topic_id = :topicId ORDER BY created_at DESC")
+    fun getByTopic(topicId: Long): Flow<List<FlashcardEntity>>
+
+    @Query("SELECT COUNT(*) FROM flashcards WHERE topic_id = :topicId")
+    suspend fun countByTopic(topicId: Long): Int
 }

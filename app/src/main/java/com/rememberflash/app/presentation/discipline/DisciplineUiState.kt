@@ -5,8 +5,12 @@ import com.rememberflash.app.domain.model.Discipline
 import com.rememberflash.app.domain.model.Flashcard
 import com.rememberflash.app.domain.model.Question
 
+import com.rememberflash.app.domain.model.Topic
+
 data class DisciplineUiState(
     val discipline: Discipline? = null,
+    val topics: List<Topic> = emptyList(),
+    val selectedTopicId: Long? = null,
     val flashcards: List<Flashcard> = emptyList(),
     val questions: List<Question> = emptyList(),
     val isLoading: Boolean = false,
