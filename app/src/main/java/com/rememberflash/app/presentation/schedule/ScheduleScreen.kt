@@ -58,20 +58,31 @@ fun ScheduleScreen(
 
     // Dialog de carregamento na geração do cronograma
     if (uiState.isGenerating) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Planejando estudos...", fontWeight = FontWeight.Bold) },
-            text = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {}
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text("Planejando estudos...", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
                     CircularProgressIndicator()
-                    Text("O Gemini está organizando o peso das matérias e gerando seu cronograma...")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "O Gemini está organizando o peso das matérias e gerando seu cronograma...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
                 }
-            },
-            confirmButton = {}
-        )
+            }
+        }
     }
 
     Scaffold(

@@ -67,7 +67,18 @@ fun ContestFormScreen(
                     return@rememberLauncherForActivityResult
                 }
 
-                viewModel.addPdfAttachment(uri.toString(), name)
+                try {
+                    val safeName = name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+                    val cacheFile = java.io.File(context.cacheDir, "pdf_${System.currentTimeMillis()}_$safeName")
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        cacheFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    viewModel.addPdfAttachment(Uri.fromFile(cacheFile).toString(), name)
+                } catch (_: Exception) {
+                    viewModel.addPdfAttachment(uri.toString(), name)
+                }
             }
         }
     }
@@ -358,14 +369,25 @@ fun ContestFormScreen(
     }
 
     if (uiState.isLoading) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Salvando Concurso", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-            text = {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {}
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text(
+                        text = "Salvando Concurso",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
                         strokeWidth = 4.dp
@@ -378,9 +400,8 @@ fun ContestFormScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            },
-            confirmButton = {}
-        )
+            }
+        }
     }
 
     uiState.error?.let { errorMsg ->

@@ -635,17 +635,23 @@ fun ContestDetailScreen(
     }
 
     if (uiState.isGeneratingMock) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Gerando Simulado Completo") },
-            text = {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {}
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        strokeWidth = 4.dp
+                    Text(
+                        text = "Gerando Simulado Geral...",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     LinearProgressIndicator(
@@ -660,9 +666,8 @@ fun ContestDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            },
-            confirmButton = {}
-        )
+            }
+        }
     }
 
 }

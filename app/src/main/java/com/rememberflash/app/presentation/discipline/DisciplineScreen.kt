@@ -967,23 +967,25 @@ fun DisciplineScreen(
 
     // Modal de carregamento geral para processos longos de IA
     if (uiState.isGeneratingFlashcards || uiState.isGeneratingQuestions) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = {
-                Text(
-                    text = if (uiState.isGeneratingFlashcards) "Extraindo do PDF..." else "Elaborando Questões...",
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            text = {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {}
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text(
+                        text = if (uiState.isGeneratingFlashcards) "Gerando Flashcards com IA..." else "Gerando Questões com IA...",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     CircularProgressIndicator(modifier = Modifier.size(50.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -992,9 +994,8 @@ fun DisciplineScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-            },
-            confirmButton = {}
-        )
+            }
+        }
     }
 
     // Modal de Erro / Avisos da IA
