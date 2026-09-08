@@ -54,7 +54,9 @@ data class TopicSupabaseDto(
     val name: String,
     val description: String? = null,
     @SerialName("is_completed") val isCompleted: Boolean = false,
-    @SerialName("order_index") val orderIndex: Int = 0
+    @SerialName("order_index") val orderIndex: Int = 0,
+    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("is_synced") val isSynced: Boolean = true
 )
 
 @Serializable
@@ -65,9 +67,29 @@ data class FlashcardSupabaseDto(
     val front: String,
     val back: String,
     val source: String = "MANUAL",
+    @SerialName("next_review_at") val nextReviewAt: Long? = null,
     @SerialName("ease_factor") val easeFactor: Double = 2.5,
     val interval: Int = 0,
     val repetitions: Int = 0,
     @SerialName("is_synced") val isSynced: Boolean = true,
-    @SerialName("tokens_spent") val tokensSpent: Int = 0
+    @SerialName("tokens_spent") val tokensSpent: Int = 0,
+    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class QuestionSupabaseDto(
+    val id: Long? = null,
+    @SerialName("discipline_id") val disciplineId: Long,
+    @SerialName("topic_id") val topicId: Long? = null,
+    val statement: String,
+    @SerialName("options_json") val optionsJson: String,
+    @SerialName("correct_index") val correctIndex: Int,
+    val explanation: String? = null,
+    val source: String = "MANUAL",
+    @SerialName("chosen_option") val chosenOption: Int? = null,
+    @SerialName("is_correct") val isCorrect: Boolean? = null,
+    @SerialName("answered_at") val answeredAt: Long? = null,
+    @SerialName("tokens_spent") val tokensSpent: Int = 0,
+    @SerialName("is_synced") val isSynced: Boolean = true,
+    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
 )

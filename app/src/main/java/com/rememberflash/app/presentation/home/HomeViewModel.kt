@@ -14,6 +14,7 @@ import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.EssayRepository
 import com.rememberflash.app.domain.repository.QuestionRepository
 import com.rememberflash.app.domain.repository.ScheduleRepository
+import com.rememberflash.app.data.sync.SyncManager
 import com.rememberflash.app.domain.usecase.contest.GetActiveContestsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,13 +48,18 @@ class HomeViewModel @Inject constructor(
     private val questionRepository: QuestionRepository,
     private val disciplineRepository: DisciplineRepository,
     private val scheduleRepository: ScheduleRepository,
-    private val logoutUseCase: com.rememberflash.app.domain.usecase.auth.LogoutUseCase
+    private val logoutUseCase: com.rememberflash.app.domain.usecase.auth.LogoutUseCase,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val logoutEvent = MutableStateFlow(false)
+
+    init {
+        syncManager.triggerSync()
+    }
 
     fun logout() {
         viewModelScope.launch {

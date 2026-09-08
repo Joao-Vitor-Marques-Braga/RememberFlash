@@ -30,6 +30,13 @@ object DatabaseModule {
             RememberFlashDatabase::class.java,
             RememberFlashDatabase.DATABASE_NAME
         )
+            .addMigrations(
+                RememberFlashDatabase.MIGRATION_1_2,
+                RememberFlashDatabase.MIGRATION_2_3,
+                RememberFlashDatabase.MIGRATION_3_4,
+                RememberFlashDatabase.MIGRATION_10_11,
+                RememberFlashDatabase.MIGRATION_11_12
+            )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }

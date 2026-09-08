@@ -14,6 +14,9 @@ interface ContestDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(contest: ContestEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(contests: List<ContestEntity>): List<Long>
+
     @Update
     suspend fun update(contest: ContestEntity)
 
@@ -31,6 +34,12 @@ interface ContestDao {
 
     @Query("SELECT * FROM contests WHERE is_synced = 0")
     suspend fun getUnsyncedContests(): List<ContestEntity>
+
+    @Query("SELECT * FROM contests WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<ContestEntity>
+
+    @Query("SELECT * FROM contests")
+    suspend fun getAllContests(): List<ContestEntity>
 
     @Query("UPDATE contests SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markContestsAsSynced(ids: List<Long>)

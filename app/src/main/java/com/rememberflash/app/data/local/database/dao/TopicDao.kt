@@ -46,4 +46,10 @@ interface TopicDao {
 
     @Query("SELECT COUNT(*) FROM topics WHERE discipline_id = :disciplineId AND is_completed = 1")
     suspend fun countCompletedByDiscipline(disciplineId: Long): Int
+
+    @Query("SELECT * FROM topics WHERE is_synced = 0")
+    suspend fun getUnsyncedTopics(): List<TopicEntity>
+
+    @Query("UPDATE topics SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markTopicsAsSynced(ids: List<Long>)
 }

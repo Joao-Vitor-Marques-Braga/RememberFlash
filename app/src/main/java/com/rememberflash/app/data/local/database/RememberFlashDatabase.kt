@@ -100,5 +100,12 @@ abstract class RememberFlashDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_questions_topic_id` ON `questions` (`topic_id`)")
             }
         }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `topics` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
     }
 }

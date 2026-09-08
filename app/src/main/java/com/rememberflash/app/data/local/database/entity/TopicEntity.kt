@@ -44,6 +44,9 @@ data class TopicEntity(
     @ColumnInfo(name = "order_index")
     val orderIndex: Int = 0,
 
+    @ColumnInfo(name = "is_synced", defaultValue = "0")
+    val isSynced: Boolean = false,
+
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
 )

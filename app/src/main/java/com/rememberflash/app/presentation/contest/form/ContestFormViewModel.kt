@@ -9,6 +9,7 @@ import com.rememberflash.app.domain.repository.AuthRepository
 import com.rememberflash.app.domain.usecase.contest.CreateContestUseCase
 import com.rememberflash.app.domain.usecase.contest.GetContestByIdUseCase
 import com.rememberflash.app.domain.usecase.contest.UpdateContestUseCase
+import com.rememberflash.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +44,8 @@ class ContestFormViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val createContestUseCase: CreateContestUseCase,
     private val updateContestUseCase: UpdateContestUseCase,
-    private val getContestByIdUseCase: GetContestByIdUseCase
+    private val getContestByIdUseCase: GetContestByIdUseCase,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestFormUiState())
@@ -201,7 +203,10 @@ class ContestFormViewModel @Inject constructor(
             }
 
             when (result) {
-                is Result.Success -> _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+                    syncManager.triggerSync()
+                }
                 is Result.Error -> _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
                 else -> {}
             }

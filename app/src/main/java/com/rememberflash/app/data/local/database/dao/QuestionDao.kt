@@ -44,4 +44,10 @@ interface QuestionDao {
 
     @Query("SELECT COUNT(*) FROM questions WHERE topic_id = :topicId")
     suspend fun countByTopic(topicId: Long): Int
+
+    @Query("SELECT * FROM questions WHERE is_synced = 0")
+    suspend fun getUnsyncedQuestions(): List<QuestionEntity>
+
+    @Query("UPDATE questions SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markQuestionsAsSynced(ids: List<Long>)
 }

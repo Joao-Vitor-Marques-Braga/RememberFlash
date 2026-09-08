@@ -14,6 +14,9 @@ interface DisciplineDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(discipline: DisciplineEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(disciplines: List<DisciplineEntity>): List<Long>
+
     @Update
     suspend fun update(discipline: DisciplineEntity)
 
@@ -28,6 +31,12 @@ interface DisciplineDao {
 
     @Query("SELECT * FROM disciplines WHERE is_synced = 0")
     suspend fun getUnsyncedDisciplines(): List<DisciplineEntity>
+
+    @Query("SELECT * FROM disciplines WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<DisciplineEntity>
+
+    @Query("SELECT * FROM disciplines")
+    suspend fun getAll(): List<DisciplineEntity>
 
     @Query("UPDATE disciplines SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markDisciplinesAsSynced(ids: List<Long>)

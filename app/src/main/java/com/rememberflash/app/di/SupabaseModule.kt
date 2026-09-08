@@ -22,9 +22,16 @@ object SupabaseModule {
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
+        val url = if (BuildConfig.SUPABASE_URL.startsWith("http://") || BuildConfig.SUPABASE_URL.startsWith("https://")) {
+            BuildConfig.SUPABASE_URL
+        } else {
+            "https://placeholder.supabase.co"
+        }
+        val key = BuildConfig.SUPABASE_ANON_KEY.ifBlank { "placeholder-anon-key" }
+
         return createSupabaseClient(
-            supabaseUrl = BuildConfig.SUPABASE_URL,
-            supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+            supabaseUrl = url,
+            supabaseKey = key
         ) {
             install(Auth)
             install(Postgrest)

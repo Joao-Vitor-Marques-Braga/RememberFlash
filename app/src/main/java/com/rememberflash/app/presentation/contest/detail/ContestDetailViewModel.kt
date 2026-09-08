@@ -12,6 +12,7 @@ import com.rememberflash.app.domain.usecase.discipline.GetDisciplinesByContestUs
 import com.rememberflash.app.domain.usecase.discipline.UpdateDisciplineUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateContestMockExamUseCase
 import com.rememberflash.app.domain.usecase.contest.SoftDeleteContestUseCase
+import com.rememberflash.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +30,8 @@ class ContestDetailViewModel @Inject constructor(
     private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
     private val generateContestMockExamUseCase: GenerateContestMockExamUseCase,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
-    private val softDeleteContestUseCase: SoftDeleteContestUseCase
+    private val softDeleteContestUseCase: SoftDeleteContestUseCase,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestDetailUiState())
@@ -38,6 +40,7 @@ class ContestDetailViewModel @Inject constructor(
     private var contestId: Long = 0L
 
     init {
+        syncManager.triggerSync()
         savedStateHandle.get<String>("contestId")?.toLongOrNull()?.let { id ->
             contestId = id
             loadContest(id)
