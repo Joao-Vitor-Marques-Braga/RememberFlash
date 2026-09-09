@@ -56,9 +56,20 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val logoutEvent = MutableStateFlow(false)
+    val isSyncing = syncManager.isSyncing
 
     init {
         syncManager.triggerSync()
+    }
+
+    fun syncNow(onResult: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val res = syncManager.syncNow()) {
+                is Result.Success -> onResult(res.data)
+                is Result.Error -> onResult(res.message)
+                else -> {}
+            }
+        }
     }
 
     fun logout() {

@@ -1,20 +1,19 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.FlashcardEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FlashcardDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(flashcard: FlashcardEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(flashcards: List<FlashcardEntity>): List<Long>
 
     @Update
@@ -22,6 +21,9 @@ interface FlashcardDao {
 
     @Query("DELETE FROM flashcards WHERE id = :flashcardId")
     suspend fun delete(flashcardId: Long)
+
+    @Query("DELETE FROM flashcards WHERE discipline_id = :disciplineId")
+    suspend fun deleteByDiscipline(disciplineId: Long)
 
     @Query("SELECT * FROM flashcards WHERE discipline_id = :disciplineId ORDER BY created_at DESC")
     fun getByDiscipline(disciplineId: Long): Flow<List<FlashcardEntity>>
@@ -42,7 +44,8 @@ interface FlashcardDao {
             ease_factor = :easeFactor, 
             interval = :interval, 
             repetitions = :repetitions, 
-            next_review_at = :nextReviewAt 
+            next_review_at = :nextReviewAt,
+            is_synced = 0 
         WHERE id = :flashcardId
         """
     )

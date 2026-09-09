@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,9 +56,14 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
     var currentTab by remember { mutableStateOf(HomeTab.DASHBOARD) }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         bottomBar = {
             HomeBottomBar(currentTab = currentTab, onTabSelected = { currentTab = it })
         },
@@ -80,6 +86,13 @@ fun HomeScreen(
 
             HomeTopBar(
                 userName = uiState.user?.name,
+                isSyncing = isSyncing,
+                onSyncClick = {
+                    android.widget.Toast.makeText(context, "Sincronizando com a nuvem...", android.widget.Toast.LENGTH_SHORT).show()
+                    viewModel.syncNow { msg ->
+                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                },
                 onNavigateToSettings = onNavigateToSettings,
                 onAvatarClick = onNavigateToProfile
             )

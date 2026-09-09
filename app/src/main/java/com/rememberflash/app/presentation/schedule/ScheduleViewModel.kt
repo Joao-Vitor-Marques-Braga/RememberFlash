@@ -12,6 +12,7 @@ import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.ScheduleRepository
 import com.rememberflash.app.domain.usecase.schedule.GenerateStudyScheduleUseCase
+import com.rememberflash.app.data.sync.SyncManager
 import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -54,15 +55,18 @@ class ScheduleViewModel @Inject constructor(
     private val contestRepository: ContestRepository,
     private val disciplineRepository: DisciplineRepository,
     private val scheduleRepository: ScheduleRepository,
-    private val generateStudyScheduleUseCase: GenerateStudyScheduleUseCase
+    private val generateStudyScheduleUseCase: GenerateStudyScheduleUseCase,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
 
     private var goalsJob: Job? = null
+    private var disciplinesJob: Job? = null
 
     init {
+        syncManager.triggerSync()
         val paramContestId = savedStateHandle.get<Long>("contestId") ?: 0L
         loadAllContests(paramContestId)
     }
@@ -87,19 +91,23 @@ class ScheduleViewModel @Inject constructor(
             val userId = sessionResult.data.id
 
             try {
-                val list = contestRepository.getActiveContestsByUser(userId).first()
-                _uiState.value = _uiState.value.copy(
-                    allContests = list,
-                    isLoading = false
-                )
-                // Se houver um contestId inicial, carrega-o
-                val targetId = if (initialContestId > 0L) {
-                    initialContestId
-                } else {
-                    list.firstOrNull()?.id ?: 0L
-                }
-                if (targetId > 0L) {
-                    loadContestAndSchedule(targetId)
+                contestRepository.getActiveContestsByUser(userId).collect { list ->
+                    _uiState.value = _uiState.value.copy(
+                        allContests = list,
+                        isLoading = false
+                    )
+                    // Se houver um contestId inicial ou selecionado, carrega-o
+                    val currentSelected = _uiState.value.contestId
+                    val targetId = if (currentSelected > 0L) {
+                        currentSelected
+                    } else if (initialContestId > 0L) {
+                        initialContestId
+                    } else {
+                        list.firstOrNull()?.id ?: 0L
+                    }
+                    if (targetId > 0L && _uiState.value.contestId != targetId) {
+                        loadContestAndSchedule(targetId)
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -129,13 +137,13 @@ class ScheduleViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(cronogramaWarning = warning)
             }
 
-            // 2. Carrega mapa de disciplinas
-            try {
-                val disciplines = disciplineRepository.getByContest(contestId).first()
-                val map = disciplines.associate { it.id to it.name }
-                _uiState.value = _uiState.value.copy(disciplinesMap = map)
-            } catch (e: Exception) {
-                android.util.Log.e("ScheduleViewModel", "Erro ao carregar mapa de disciplinas", e)
+            // 2. Observa mapa de disciplinas em tempo real
+            disciplinesJob?.cancel()
+            disciplinesJob = viewModelScope.launch {
+                disciplineRepository.getByContest(contestId).collect { disciplines ->
+                    val map = disciplines.associate { it.id to it.name }
+                    _uiState.value = _uiState.value.copy(disciplinesMap = map)
+                }
             }
 
             // 3. Carrega o cronograma existente

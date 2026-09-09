@@ -44,7 +44,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun saveSession(token: String, user: User) {
         preferencesManager.saveToken(token)
         preferencesManager.saveUser(user)
-        syncManager.syncDownstream(user.id)
+        syncManager.triggerSync(user.id)
     }
 
     override suspend fun getCurrentSession(): Result<User> {

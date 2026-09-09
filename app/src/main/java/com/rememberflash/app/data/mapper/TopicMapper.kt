@@ -11,6 +11,7 @@ fun TopicEntity.toDomain(flashcardsCount: Int = 0, questionsCount: Int = 0): Top
     description = description,
     isCompleted = isCompleted,
     orderIndex = orderIndex,
+    isSynced = isSynced,
     flashcardsCount = flashcardsCount,
     questionsCount = questionsCount,
     createdAt = createdAt
@@ -24,5 +25,6 @@ fun Topic.toEntity(): TopicEntity = TopicEntity(
     description = description,
     isCompleted = isCompleted,
     orderIndex = orderIndex,
+    isSynced = isSynced,
     createdAt = createdAt
 )

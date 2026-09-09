@@ -169,13 +169,13 @@ class GenerateStudyScheduleUseCase @Inject constructor(
                 val updatedContest = contest.copy(
                     description = "${contest.description}\n\n[WarningCronograma]: ${parsedResponse.warning}"
                 )
-                contestRepository.insert(updatedContest) // Salva o contest com o warning no DB
+                contestRepository.update(updatedContest) // Atualiza o contest com o warning no DB
             } else {
                 // Limpa avisos anteriores se houver
                 if (contest.description.contains("[WarningCronograma]")) {
                     val cleanDesc = contest.description.substringBefore("\n\n[WarningCronograma]").trim()
                     val updatedContest = contest.copy(description = cleanDesc)
-                    contestRepository.insert(updatedContest)
+                    contestRepository.update(updatedContest)
                 }
             }
 

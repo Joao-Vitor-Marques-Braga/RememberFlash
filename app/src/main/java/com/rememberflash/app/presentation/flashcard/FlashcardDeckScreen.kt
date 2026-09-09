@@ -27,6 +27,16 @@ import com.rememberflash.app.presentation.theme.AccentOrange
 import com.rememberflash.app.presentation.theme.SuccessGreen
 import kotlinx.coroutines.launch
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlashcardDeckScreen(
@@ -34,7 +44,20 @@ fun FlashcardDeckScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val infiniteTransition = rememberInfiniteTransition(label = "deckSyncRotate")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "deckSyncRotateAnim"
+    )
 
     // Dialog state
     var showFormDialog by remember { mutableStateOf(false) }
@@ -74,6 +97,24 @@ fun FlashcardDeckScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            android.widget.Toast.makeText(context, "Sincronizando com a nuvem...", android.widget.Toast.LENGTH_SHORT).show()
+                            viewModel.syncNow { msg ->
+                                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = !isSyncing
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sincronizar",
+                            tint = if (isSyncing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                            modifier = if (isSyncing) Modifier.rotate(rotation) else Modifier
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

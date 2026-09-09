@@ -21,12 +21,35 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.rotate
+
 @Composable
 fun HomeTopBar(
     userName: String?,
+    isSyncing: Boolean = false,
+    onSyncClick: () -> Unit = {},
     onNavigateToSettings: () -> Unit,
     onAvatarClick: () -> Unit
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -40,7 +63,19 @@ fun HomeTopBar(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = onSyncClick,
+                enabled = !isSyncing
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Sync,
+                    contentDescription = "Sincronizar com a Nuvem",
+                    tint = if (isSyncing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                    modifier = if (isSyncing) Modifier.rotate(rotation) else Modifier
+                )
+            }
+
             IconButton(onClick = onNavigateToSettings) {
                 Icon(
                     imageVector = Icons.Default.Settings,

@@ -1,20 +1,19 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.ContestEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContestDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(contest: ContestEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(contests: List<ContestEntity>): List<Long>
 
     @Update
@@ -22,6 +21,9 @@ interface ContestDao {
 
     @Query("UPDATE contests SET is_active = 0, updated_at = :updatedAt WHERE id = :contestId")
     suspend fun softDelete(contestId: Long, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM contests WHERE id = :contestId")
+    suspend fun delete(contestId: Long)
 
     @Query("SELECT * FROM contests WHERE user_id = :userId AND is_active = 1 ORDER BY updated_at DESC")
     fun getActiveByUser(userId: String): Flow<List<ContestEntity>>

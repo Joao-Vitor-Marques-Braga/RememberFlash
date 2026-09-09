@@ -1,19 +1,28 @@
 package com.rememberflash.app.data.repository
 
 import com.rememberflash.app.data.local.database.dao.ContestDao
+import com.rememberflash.app.data.local.database.dao.DisciplineDao
+import com.rememberflash.app.data.local.database.dao.TopicDao
+import com.rememberflash.app.data.local.database.dao.FlashcardDao
+import com.rememberflash.app.data.local.database.dao.QuestionDao
 import com.rememberflash.app.data.mapper.toDomain
 import com.rememberflash.app.data.mapper.toEntity
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.repository.ContestRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ContestRepositoryImpl @Inject constructor(
-    private val contestDao: ContestDao
+    private val contestDao: ContestDao,
+    private val disciplineDao: DisciplineDao,
+    private val topicDao: TopicDao,
+    private val flashcardDao: FlashcardDao,
+    private val questionDao: QuestionDao
 ) : ContestRepository {
 
     override suspend fun insert(contest: Contest): Result<Long> {
@@ -40,6 +49,23 @@ class ContestRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.error("Erro ao inativar concurso: ${e.localizedMessage}", e)
+        }
+    }
+
+    override suspend fun delete(contestId: Long): Result<Unit> {
+        return try {
+            val discEntities = disciplineDao.getByContest(contestId).firstOrNull() ?: emptyList()
+            for (d in discEntities) {
+                flashcardDao.deleteByDiscipline(d.id)
+                questionDao.deleteByDiscipline(d.id)
+                topicDao.deleteByDiscipline(d.id)
+            }
+            topicDao.deleteByContest(contestId)
+            disciplineDao.deleteByContest(contestId)
+            contestDao.delete(contestId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao excluir concurso: ${e.localizedMessage}", e)
         }
     }
 

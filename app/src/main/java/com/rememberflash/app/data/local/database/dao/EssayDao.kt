@@ -1,16 +1,15 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.EssayEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EssayDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(essay: EssayEntity): Long
 
     @Query("UPDATE essays SET extracted_text = :text WHERE id = :essayId")

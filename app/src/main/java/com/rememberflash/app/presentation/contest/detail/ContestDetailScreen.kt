@@ -9,6 +9,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -49,6 +56,19 @@ fun ContestDetailScreen(
     var showInfoBottomSheet by remember { mutableStateOf(false) }
     var showDeleteContestDialog by remember { mutableStateOf(false) }
 
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,6 +79,22 @@ fun ContestDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = {
+                            android.widget.Toast.makeText(context, "Sincronizando com a nuvem...", android.widget.Toast.LENGTH_SHORT).show()
+                            viewModel.syncNow { msg ->
+                                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = !isSyncing
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sincronizar",
+                            tint = if (isSyncing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                            modifier = if (isSyncing) Modifier.rotate(rotation) else Modifier
+                        )
+                    }
                     uiState.contest?.let { contest ->
                         IconButton(onClick = { onNavigateToEditContest(contest.id) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar Concurso")

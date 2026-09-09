@@ -21,6 +21,19 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    val isSyncing = syncManager.isSyncing
+    val isOnline = syncManager.isOnline
+
+    fun syncNow(onResult: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val res = syncManager.syncNow()) {
+                is com.rememberflash.app.domain.common.Result.Success -> onResult(res.data)
+                is com.rememberflash.app.domain.common.Result.Error -> onResult(res.message)
+                else -> {}
+            }
+        }
+    }
+
     init {
         loadSettings()
     }

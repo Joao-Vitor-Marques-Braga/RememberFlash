@@ -1,10 +1,9 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.DailyGoalEntity
 import com.rememberflash.app.data.local.database.entity.ScheduleEntity
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ScheduleDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSchedule(schedule: ScheduleEntity): Long
 
     @Update
@@ -21,7 +20,7 @@ interface ScheduleDao {
     @Query("SELECT * FROM study_schedules WHERE contest_id = :contestId LIMIT 1")
     suspend fun getByContest(contestId: Long): ScheduleEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertDailyGoals(goals: List<DailyGoalEntity>)
 
     @Query("SELECT * FROM daily_goals WHERE schedule_id = :scheduleId ORDER BY date ASC, discipline_id ASC")

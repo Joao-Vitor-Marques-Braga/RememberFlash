@@ -50,6 +50,7 @@ class DisciplineViewModel @Inject constructor(
     private val generateQuestionsUseCase: GenerateQuestionsUseCase,
     private val geminiClient: GeminiClient,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
+    private val syncManager: com.rememberflash.app.data.sync.SyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -62,9 +63,22 @@ class DisciplineViewModel @Inject constructor(
 
     private val gson = Gson()
 
+    val isSyncing = syncManager.isSyncing
+
+    fun syncNow(onResult: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val res = syncManager.syncNow()) {
+                is Result.Success -> onResult(res.data)
+                is Result.Error -> onResult(res.message)
+                else -> {}
+            }
+        }
+    }
+
     init {
         loadDiscipline()
         observeData()
+        syncManager.triggerSync()
     }
 
     private fun loadDiscipline() {
@@ -125,6 +139,7 @@ class DisciplineViewModel @Inject constructor(
     fun toggleTopicCompletion(topicId: Long, isCompleted: Boolean) {
         viewModelScope.launch {
             toggleTopicCompletionUseCase(topicId, isCompleted)
+            syncManager.triggerSync()
         }
     }
 
@@ -133,6 +148,7 @@ class DisciplineViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = createTopicUseCase(disciplineId, contestId, name, description)) {
                 is Result.Success -> {
+                    syncManager.triggerSync()
                     onSuccess()
                 }
                 is Result.Error -> {
@@ -145,6 +161,7 @@ class DisciplineViewModel @Inject constructor(
 
     fun deleteTopic(topicId: Long) {
         viewModelScope.launch {
+            syncManager.deleteTopicRemote(topicId)
             deleteTopicUseCase(topicId)
             if (_uiState.value.selectedTopicId == topicId) {
                 _uiState.value = _uiState.value.copy(selectedTopicId = null)
@@ -229,6 +246,7 @@ class DisciplineViewModel @Inject constructor(
                 // Salva
                 when (val saveResult = extractFlashcardsFromPdfUseCase(disciplineId, cardsToSave)) {
                     is Result.Success -> {
+                        syncManager.triggerSync()
                         _uiState.value = _uiState.value.copy(
                             isGeneratingFlashcards = false,
                             pdfUri = null,
@@ -262,6 +280,7 @@ class DisciplineViewModel @Inject constructor(
 
             when (val result = generateQuestionsUseCase(disciplineId, quantity, theme)) {
                 is Result.Success -> {
+                    syncManager.triggerSync()
                     _uiState.value = _uiState.value.copy(
                         isGeneratingQuestions = false,
                         isQuestionsGeneratedSuccess = true,
@@ -294,7 +313,11 @@ class DisciplineViewModel @Inject constructor(
             source = FlashcardSource.MANUAL,
             isSynced = false
         )
-        return createFlashcardUseCase(card)
+        val res = createFlashcardUseCase(card)
+        if (res is Result.Success) {
+            syncManager.triggerSync()
+        }
+        return res
     }
 
     suspend fun updateManualFlashcard(card: Flashcard, front: String, back: String, topicId: Long? = null): Result<Unit> {
@@ -307,10 +330,15 @@ class DisciplineViewModel @Inject constructor(
             topicId = topicId ?: card.topicId,
             isSynced = false
         )
-        return updateFlashcardUseCase(updatedCard)
+        val res = updateFlashcardUseCase(updatedCard)
+        if (res is Result.Success) {
+            syncManager.triggerSync()
+        }
+        return res
     }
 
     suspend fun deleteManualFlashcard(flashcardId: Long): Result<Unit> {
+        syncManager.deleteFlashcardRemote(flashcardId)
         return deleteFlashcardUseCase(flashcardId)
     }
 

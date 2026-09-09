@@ -1,15 +1,14 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.MockExamAttemptEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MockExamAttemptDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAttempt(attempt: MockExamAttemptEntity): Long
 
     @Query("SELECT * FROM mock_exam_attempts WHERE discipline_id = :disciplineId ORDER BY created_at DESC")

@@ -18,20 +18,20 @@ data class ContestSupabaseDto(
     val id: Long? = null,
     @SerialName("user_id") val userId: String,
     val title: String,
-    val description: String = "",
-    @SerialName("organizer_name") val organizerName: String = "",
-    @SerialName("question_type") val questionType: String = "Múltipla Escolha",
+    val description: String? = "",
+    @SerialName("organizer_name") val organizerName: String? = "",
+    @SerialName("question_type") val questionType: String? = "Múltipla Escolha",
     @SerialName("syllabus_pdf_uri") val syllabusPdfUri: String? = null,
     @SerialName("exam_date_str") val examDateStr: String? = null,
     @SerialName("exam_location") val examLocation: String? = null,
     @SerialName("allowed_pen") val allowedPen: String? = null,
     @SerialName("allowed_items") val allowedItems: String? = null,
     @SerialName("prohibited_items") val prohibitedItems: String? = null,
-    @SerialName("ai_difficulty") val aiDifficulty: String = "Médio",
-    @SerialName("ai_rigor") val aiRigor: String = "Padrão",
-    @SerialName("ai_tone") val aiTone: String = "Explicativo",
-    @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("is_synced") val isSynced: Boolean = true
+    @SerialName("ai_difficulty") val aiDifficulty: String? = "Médio",
+    @SerialName("ai_rigor") val aiRigor: String? = "Padrão",
+    @SerialName("ai_tone") val aiTone: String? = "Explicativo",
+    @SerialName("is_active") val isActive: Boolean? = true,
+    @SerialName("is_synced") val isSynced: Boolean? = true
 )
 
 @Serializable
@@ -39,11 +39,11 @@ data class DisciplineSupabaseDto(
     val id: Long? = null,
     @SerialName("contest_id") val contestId: Long,
     val name: String,
-    val weight: Double = 1.0,
-    @SerialName("total_topics") val totalTopics: Int = 0,
-    @SerialName("completed_topics") val completedTopics: Int = 0,
-    @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("is_synced") val isSynced: Boolean = true
+    val weight: Double? = 1.0,
+    @SerialName("total_topics") val totalTopics: Int? = 0,
+    @SerialName("completed_topics") val completedTopics: Int? = 0,
+    @SerialName("is_active") val isActive: Boolean? = true,
+    @SerialName("is_synced") val isSynced: Boolean? = true
 )
 
 @Serializable
@@ -53,10 +53,10 @@ data class TopicSupabaseDto(
     @SerialName("contest_id") val contestId: Long,
     val name: String,
     val description: String? = null,
-    @SerialName("is_completed") val isCompleted: Boolean = false,
-    @SerialName("order_index") val orderIndex: Int = 0,
-    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis(),
-    @SerialName("is_synced") val isSynced: Boolean = true
+    @SerialName("is_completed") val isCompleted: Boolean? = false,
+    @SerialName("order_index") val orderIndex: Int? = 0,
+    @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis(),
+    @SerialName("is_synced") val isSynced: Boolean? = true
 )
 
 @Serializable
@@ -66,14 +66,14 @@ data class FlashcardSupabaseDto(
     @SerialName("topic_id") val topicId: Long? = null,
     val front: String,
     val back: String,
-    val source: String = "MANUAL",
+    val source: String? = "MANUAL",
     @SerialName("next_review_at") val nextReviewAt: Long? = null,
-    @SerialName("ease_factor") val easeFactor: Double = 2.5,
-    val interval: Int = 0,
-    val repetitions: Int = 0,
-    @SerialName("is_synced") val isSynced: Boolean = true,
-    @SerialName("tokens_spent") val tokensSpent: Int = 0,
-    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
+    @SerialName("ease_factor") val easeFactor: Double? = 2.5,
+    val interval: Int? = 0,
+    val repetitions: Int? = 0,
+    @SerialName("is_synced") val isSynced: Boolean? = true,
+    @SerialName("tokens_spent") val tokensSpent: Int? = 0,
+    @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
 )
 
 @Serializable
@@ -85,11 +85,11 @@ data class QuestionSupabaseDto(
     @SerialName("options_json") val optionsJson: String,
     @SerialName("correct_index") val correctIndex: Int,
     val explanation: String? = null,
-    val source: String = "MANUAL",
+    val source: String? = "MANUAL",
     @SerialName("chosen_option") val chosenOption: Int? = null,
     @SerialName("is_correct") val isCorrect: Boolean? = null,
     @SerialName("answered_at") val answeredAt: Long? = null,
-    @SerialName("tokens_spent") val tokensSpent: Int = 0,
-    @SerialName("is_synced") val isSynced: Boolean = true,
-    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
+    @SerialName("tokens_spent") val tokensSpent: Int? = 0,
+    @SerialName("is_synced") val isSynced: Boolean? = true,
+    @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
 )

@@ -26,6 +26,7 @@ class FlashcardDeckViewModel @Inject constructor(
     private val createFlashcardUseCase: CreateFlashcardUseCase,
     private val updateFlashcardUseCase: UpdateFlashcardUseCase,
     private val deleteFlashcardUseCase: DeleteFlashcardUseCase,
+    private val syncManager: com.rememberflash.app.data.sync.SyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -36,9 +37,22 @@ class FlashcardDeckViewModel @Inject constructor(
         "disciplineId é obrigatório"
     }
 
+    val isSyncing: StateFlow<Boolean> = syncManager.isSyncing
+
     init {
         loadDiscipline()
         observeFlashcards()
+        syncManager.triggerSync()
+    }
+
+    fun syncNow(onResult: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val res = syncManager.syncNow()) {
+                is Result.Success -> onResult("Sincronização concluída com sucesso!")
+                is Result.Error -> onResult("Falha na sincronização: ${res.message}")
+                else -> onResult("Sincronização finalizada.")
+            }
+        }
     }
 
     private fun loadDiscipline() {
@@ -83,7 +97,11 @@ class FlashcardDeckViewModel @Inject constructor(
             source = FlashcardSource.MANUAL,
             isSynced = false
         )
-        return createFlashcardUseCase(card)
+        val res = createFlashcardUseCase(card)
+        if (res is Result.Success) {
+            syncManager.triggerSync()
+        }
+        return res
     }
 
     suspend fun updateFlashcard(card: Flashcard, front: String, back: String): Result<Unit> {
@@ -95,10 +113,15 @@ class FlashcardDeckViewModel @Inject constructor(
             back = back,
             isSynced = false // resets to unsynced so that it triggers sync
         )
-        return updateFlashcardUseCase(updatedCard)
+        val res = updateFlashcardUseCase(updatedCard)
+        if (res is Result.Success) {
+            syncManager.triggerSync()
+        }
+        return res
     }
 
     suspend fun deleteFlashcard(flashcardId: Long): Result<Unit> {
+        syncManager.deleteFlashcardRemote(flashcardId)
         return deleteFlashcardUseCase(flashcardId)
     }
 

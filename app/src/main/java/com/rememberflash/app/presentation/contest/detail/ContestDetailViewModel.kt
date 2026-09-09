@@ -11,7 +11,7 @@ import com.rememberflash.app.domain.usecase.discipline.DeleteDisciplineUseCase
 import com.rememberflash.app.domain.usecase.discipline.GetDisciplinesByContestUseCase
 import com.rememberflash.app.domain.usecase.discipline.UpdateDisciplineUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateContestMockExamUseCase
-import com.rememberflash.app.domain.usecase.contest.SoftDeleteContestUseCase
+import com.rememberflash.app.domain.usecase.contest.DeleteContestUseCase
 import com.rememberflash.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,14 +30,26 @@ class ContestDetailViewModel @Inject constructor(
     private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
     private val generateContestMockExamUseCase: GenerateContestMockExamUseCase,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
-    private val softDeleteContestUseCase: SoftDeleteContestUseCase,
+    private val deleteContestUseCase: DeleteContestUseCase,
     private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestDetailUiState())
     val uiState: StateFlow<ContestDetailUiState> = _uiState.asStateFlow()
 
+    val isSyncing = syncManager.isSyncing
+
     private var contestId: Long = 0L
+
+    fun syncNow(onResult: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val res = syncManager.syncNow()) {
+                is Result.Success -> onResult(res.data)
+                is Result.Error -> onResult(res.message)
+                else -> {}
+            }
+        }
+    }
 
     init {
         syncManager.triggerSync()
@@ -153,6 +165,7 @@ class ContestDetailViewModel @Inject constructor(
     fun deleteDiscipline(disciplineId: Long, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            syncManager.deleteDisciplineRemote(disciplineId)
             when (val result = deleteDisciplineUseCase(disciplineId)) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
@@ -205,7 +218,8 @@ class ContestDetailViewModel @Inject constructor(
     fun deleteContest(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            when (val result = softDeleteContestUseCase(contestId)) {
+            syncManager.deleteContestRemote(contestId)
+            when (val result = deleteContestUseCase(contestId)) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     onSuccess()

@@ -1,27 +1,29 @@
 package com.rememberflash.app.data.local.database.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.rememberflash.app.data.local.database.entity.DisciplineEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DisciplineDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(discipline: DisciplineEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(disciplines: List<DisciplineEntity>): List<Long>
 
     @Update
     suspend fun update(discipline: DisciplineEntity)
 
-    @Query("UPDATE disciplines SET is_active = 0 WHERE id = :disciplineId")
+    @Query("DELETE FROM disciplines WHERE id = :disciplineId")
     suspend fun delete(disciplineId: Long)
+
+    @Query("DELETE FROM disciplines WHERE contest_id = :contestId")
+    suspend fun deleteByContest(contestId: Long)
 
     @Query("SELECT * FROM disciplines WHERE contest_id = :contestId AND is_active = 1 ORDER BY weight DESC, name ASC")
     fun getByContest(contestId: Long): Flow<List<DisciplineEntity>>
