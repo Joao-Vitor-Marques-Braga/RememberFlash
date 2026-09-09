@@ -78,4 +78,19 @@ class FlashcardRepositoryImpl @Inject constructor(
             Result.error("Erro ao atualizar métricas de revisão: ${e.localizedMessage}", e)
         }
     }
+
+    override fun getByTopic(topicId: Long): Flow<List<Flashcard>> {
+        return flashcardDao.getByTopic(topicId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun countByTopic(topicId: Long): Result<Int> {
+        return try {
+            val count = flashcardDao.countByTopic(topicId)
+            Result.success(count)
+        } catch (e: Exception) {
+            Result.error("Erro ao contar flashcards do tópico: ${e.localizedMessage}", e)
+        }
+    }
 }

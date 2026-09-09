@@ -27,7 +27,8 @@ class GenerateQuestionsUseCase @Inject constructor(
     suspend operator fun invoke(
         disciplineId: Long,
         quantity: Int,
-        theme: String?
+        theme: String?,
+        topicId: Long? = null
     ): Result<Unit> {
         // Validação de Filtro de Segurança Local (A2)
         if (!theme.isNullOrBlank()) {
@@ -59,13 +60,14 @@ class GenerateQuestionsUseCase @Inject constructor(
             }
 
             // 2. Chama o Gemini
+            val effectiveTheme = theme ?: ""
             val jsonResponse = geminiClient.generateQuestions(
                 disciplineName = discipline.name,
                 banca = contest.organizerName.ifBlank { "Geral" },
                 format = format,
                 difficulty = difficulty,
                 quantity = quantity,
-                theme = theme
+                theme = effectiveTheme
             )
 
             // 3. Desserialização e Validação do Contrato (A1)
@@ -89,6 +91,7 @@ class GenerateQuestionsUseCase @Inject constructor(
                 }
                 Question(
                     disciplineId = disciplineId,
+                    topicId = topicId,
                     statement = raw.statement,
                     options = raw.options,
                     correctIndex = raw.correctIndex,
@@ -99,18 +102,18 @@ class GenerateQuestionsUseCase @Inject constructor(
                 )
             }
 
-            // Apaga as anteriores desta disciplina antes de salvar o novo lote
-            questionRepository.clearQuestionsByDiscipline(disciplineId)
+            // Apaga as anteriores deste escopo antes de salvar o novo lote
+            if (topicId != null) {
+                questionRepository.clearQuestionsByTopic(topicId)
+            } else {
+                questionRepository.clearQuestionsByDiscipline(disciplineId)
+            }
             questionRepository.saveQuestions(questions)
             Result.success(Unit)
         } catch (e: Exception) {
             android.util.Log.e("GenerateQuestionsUseCase", "Erro ao gerar questões via IA", e)
-            val msg = e.localizedMessage ?: e.message ?: e.toString()
-            if (msg.contains("safety", ignoreCase = true) || msg.contains("blocked", ignoreCase = true)) {
-                Result.error("O tema solicitado foi bloqueado pelas políticas de segurança da IA do Google. Erro: $msg")
-            } else {
-                Result.error("Erro detalhado da API Gemini: $msg")
-            }
+            val msg = e.message?.ifBlank { null } ?: "Falha ao gerar questões com a Inteligência Artificial."
+            Result.error(msg, e)
         }
     }
 

@@ -30,8 +30,7 @@ data class ContestSupabaseDto(
     @SerialName("ai_difficulty") val aiDifficulty: String? = "Médio",
     @SerialName("ai_rigor") val aiRigor: String? = "Padrão",
     @SerialName("ai_tone") val aiTone: String? = "Explicativo",
-    @SerialName("is_active") val isActive: Boolean? = true,
-    @SerialName("is_synced") val isSynced: Boolean? = true
+    @SerialName("is_active") val isActive: Boolean? = true
 )
 
 @Serializable
@@ -42,8 +41,7 @@ data class DisciplineSupabaseDto(
     val weight: Double? = 1.0,
     @SerialName("total_topics") val totalTopics: Int? = 0,
     @SerialName("completed_topics") val completedTopics: Int? = 0,
-    @SerialName("is_active") val isActive: Boolean? = true,
-    @SerialName("is_synced") val isSynced: Boolean? = true
+    @SerialName("is_active") val isActive: Boolean? = true
 )
 
 @Serializable
@@ -55,8 +53,7 @@ data class TopicSupabaseDto(
     val description: String? = null,
     @SerialName("is_completed") val isCompleted: Boolean? = false,
     @SerialName("order_index") val orderIndex: Int? = 0,
-    @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis(),
-    @SerialName("is_synced") val isSynced: Boolean? = true
+    @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
 )
 
 @Serializable
@@ -71,7 +68,6 @@ data class FlashcardSupabaseDto(
     @SerialName("ease_factor") val easeFactor: Double? = 2.5,
     val interval: Int? = 0,
     val repetitions: Int? = 0,
-    @SerialName("is_synced") val isSynced: Boolean? = true,
     @SerialName("tokens_spent") val tokensSpent: Int? = 0,
     @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
 )
@@ -90,6 +86,29 @@ data class QuestionSupabaseDto(
     @SerialName("is_correct") val isCorrect: Boolean? = null,
     @SerialName("answered_at") val answeredAt: Long? = null,
     @SerialName("tokens_spent") val tokensSpent: Int? = 0,
-    @SerialName("is_synced") val isSynced: Boolean? = true,
     @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
+)
+
+@Serializable
+data class StudyScheduleSupabaseDto(
+    val id: Long? = null,
+    @SerialName("contest_id") val contestId: Long,
+    @SerialName("exam_date") val examDate: String? = null,
+    @SerialName("available_hours_per_day") val availableHoursPerDay: Double? = 2.0,
+    @SerialName("rest_days_per_week") val restDaysPerWeek: Int? = 1,
+    @SerialName("tokens_spent") val tokensSpent: Int? = 0,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("last_recalculated_at") val lastRecalculatedAt: String? = null
+)
+
+@Serializable
+data class DailyGoalSupabaseDto(
+    val id: Long? = null,
+    @SerialName("schedule_id") val scheduleId: Long,
+    @SerialName("discipline_id") val disciplineId: Long,
+    val date: String,
+    @SerialName("target_minutes") val targetMinutes: Int,
+    @SerialName("completed_minutes") val completedMinutes: Int? = 0,
+    @SerialName("flashcards_target") val flashcardsTarget: Int? = 0,
+    @SerialName("flashcards_completed") val flashcardsCompleted: Int? = 0
 )

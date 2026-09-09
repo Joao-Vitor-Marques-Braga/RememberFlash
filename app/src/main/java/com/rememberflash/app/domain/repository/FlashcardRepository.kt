@@ -18,4 +18,6 @@ interface FlashcardRepository {
         repetitions: Int,
         nextReviewAt: Long
     ): Result<Unit>
+    fun getByTopic(topicId: Long): Flow<List<Flashcard>>
+    suspend fun countByTopic(topicId: Long): Result<Int>
 }

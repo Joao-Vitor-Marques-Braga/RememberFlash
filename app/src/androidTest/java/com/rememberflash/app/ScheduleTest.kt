@@ -76,6 +76,7 @@ class ScheduleTest {
             this.contest = contest
             return Result.success(Unit)
         }
+        override suspend fun delete(contestId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun softDelete(contestId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun getById(contestId: Long): Result<Contest> = Result.success(contest)
         override fun getActiveContestsByUser(userId: String): Flow<List<Contest>> = flowOf(listOf(contest))
@@ -104,6 +105,7 @@ class ScheduleTest {
         override suspend fun update(schedule: StudySchedule): Result<Unit> = Result.success(Unit)
         override suspend fun getByContest(contestId: Long): Result<StudySchedule?> = Result.success(existingSchedule)
         override fun getDailyGoalsBySchedule(scheduleId: Long): Flow<List<DailyGoal>> = flowOf(insertedGoals)
+        override fun getAllDailyGoalsFlow(): Flow<List<DailyGoal>> = flowOf(insertedGoals)
         override suspend fun insertDailyGoals(goals: List<DailyGoal>): Result<Unit> {
             insertedGoals.addAll(goals)
             return Result.success(Unit)
@@ -132,7 +134,6 @@ class ScheduleTest {
         geminiClient = FakeGeminiScheduleClient()
 
         useCase = GenerateStudyScheduleUseCase(
-            context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext,
             contestRepository = contestRepository,
             disciplineRepository = disciplineRepository,
             scheduleRepository = scheduleRepository,
@@ -154,7 +155,8 @@ class ScheduleTest {
             contestRepository = contestRepository,
             disciplineRepository = disciplineRepository,
             scheduleRepository = scheduleRepository,
-            generateStudyScheduleUseCase = useCase
+            generateStudyScheduleUseCase = useCase,
+            syncManager = org.mockito.kotlin.mock()
         )
 
         testDispatcher.scheduler.advanceUntilIdle()

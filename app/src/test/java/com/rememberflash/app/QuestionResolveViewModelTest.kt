@@ -74,6 +74,8 @@ class QuestionResolveViewModelTest {
         var resetCalled = false
 
         override fun getQuestionsByDiscipline(disciplineId: Long): Flow<List<Question>> = flowOf(questions)
+        override fun getQuestionsByTopic(topicId: Long): Flow<List<Question>> = flowOf(emptyList())
+        override suspend fun clearQuestionsByTopic(topicId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun saveQuestions(questions: List<Question>): Result<Unit> = Result.success(Unit)
         override suspend fun clearQuestionsByDiscipline(disciplineId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit> {

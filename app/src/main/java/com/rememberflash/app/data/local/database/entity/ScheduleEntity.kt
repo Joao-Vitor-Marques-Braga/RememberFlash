@@ -41,7 +41,10 @@ data class ScheduleEntity(
     val createdAt: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "last_recalculated_at")
-    val lastRecalculatedAt: Long = System.currentTimeMillis()
+    val lastRecalculatedAt: Long = System.currentTimeMillis(),
+
+    @ColumnInfo(name = "is_synced", defaultValue = "0")
+    val isSynced: Boolean = false
 )
 
 @Entity(
@@ -84,5 +87,8 @@ data class DailyGoalEntity(
     val flashcardsTarget: Int = 0,
 
     @ColumnInfo(name = "flashcards_completed")
-    val flashcardsCompleted: Int = 0
+    val flashcardsCompleted: Int = 0,
+
+    @ColumnInfo(name = "is_synced", defaultValue = "0")
+    val isSynced: Boolean = false
 )

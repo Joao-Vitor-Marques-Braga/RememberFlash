@@ -76,6 +76,7 @@ class ScheduleTest {
             this.contest = contest
             return Result.success(Unit)
         }
+        override suspend fun delete(contestId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun softDelete(contestId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun getById(contestId: Long): Result<Contest> = Result.success(contest)
         override fun getActiveContestsByUser(userId: String): Flow<List<Contest>> = flowOf(listOf(contest))
@@ -133,7 +134,6 @@ class ScheduleTest {
         geminiClient = FakeGeminiScheduleClient()
 
         useCase = GenerateStudyScheduleUseCase(
-            context = mock(),
             contestRepository = contestRepository,
             disciplineRepository = disciplineRepository,
             scheduleRepository = scheduleRepository,
@@ -155,7 +155,8 @@ class ScheduleTest {
             contestRepository = contestRepository,
             disciplineRepository = disciplineRepository,
             scheduleRepository = scheduleRepository,
-            generateStudyScheduleUseCase = useCase
+            generateStudyScheduleUseCase = useCase,
+            syncManager = mock()
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -279,4 +280,48 @@ class ScheduleTest {
         assertTrue(savedDescription.contains("[WarningCronograma]:"))
         assertTrue(savedDescription.contains(warningMessage))
     }
+
+    @Test
+    fun testGenerateScheduleWeeklyPlanLongTermUntil2027() = runTest {
+        val fakeGeminiWeeklyJson = """
+            {
+              "warning": null,
+              "weeklyPlan": [
+                {
+                  "dayOfWeek": "Segunda",
+                  "sessions": [
+                    { "disciplineName": "Língua Portuguesa", "minutes": 60 },
+                    { "disciplineName": "Direito Constitucional", "minutes": 60 }
+                  ]
+                },
+                {
+                  "dayOfWeek": "Quarta",
+                  "sessions": [
+                    { "disciplineName": "Língua Portuguesa", "minutes": 60 }
+                  ]
+                }
+              ]
+            }
+        """.trimIndent()
+
+        geminiClient.resultJson = fakeGeminiWeeklyJson
+
+        // 130 dias no futuro (aproximadamente Jan 2027)
+        val futureExamDate = System.currentTimeMillis() + 130L * 24 * 60 * 60 * 1000L
+        val result = useCase(
+            contestId = 1L,
+            examDateLong = futureExamDate,
+            minutesPerDay = 120,
+            maxSubjectsPerDay = 2,
+            availableDaysOfWeek = listOf("Segunda", "Quarta")
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(100L, result.getOrNull())
+
+        // Deve ter gerado dezenas de metas ao longo dos 130 dias para Segunda e Quarta
+        assertTrue(scheduleRepository.insertedGoals.size > 20)
+        assertTrue(scheduleRepository.insertedGoals.all { it.scheduleId == 100L })
+    }
 }
+

@@ -112,6 +112,21 @@ class QuestionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getQuestionsByTopic(topicId: Long): Flow<List<Question>> {
+        return questionDao.getByTopic(topicId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun clearQuestionsByTopic(topicId: Long): Result<Unit> {
+        return try {
+            questionDao.deleteByTopic(topicId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Falha ao limpar questões do tópico: ${e.localizedMessage}", e)
+        }
+    }
+
     private fun com.rememberflash.app.data.local.database.entity.MockExamAttemptEntity.toDomain() = com.rememberflash.app.domain.model.MockExamAttempt(
         id = id,
         contestId = contestId,

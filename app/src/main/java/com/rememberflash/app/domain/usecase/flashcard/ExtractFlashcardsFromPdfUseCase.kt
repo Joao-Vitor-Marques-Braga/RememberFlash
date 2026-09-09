@@ -21,7 +21,8 @@ class ExtractFlashcardsFromPdfUseCase @Inject constructor(
      */
     suspend operator fun invoke(
         disciplineId: Long,
-        extractedFlashcards: List<Pair<String, String>>
+        extractedFlashcards: List<Pair<String, String>>,
+        topicId: Long? = null
     ): Result<List<Long>> {
         if (extractedFlashcards.isEmpty()) {
             return Result.error("Nenhum flashcard extraído do PDF")
@@ -33,6 +34,7 @@ class ExtractFlashcardsFromPdfUseCase @Inject constructor(
             val flashcards = extractedFlashcards.map { (front, back) ->
                 Flashcard(
                     disciplineId = disciplineId,
+                    topicId = topicId,
                     front = front.trim(),
                     back = back.trim(),
                     source = FlashcardSource.PDF_EXTRACT,

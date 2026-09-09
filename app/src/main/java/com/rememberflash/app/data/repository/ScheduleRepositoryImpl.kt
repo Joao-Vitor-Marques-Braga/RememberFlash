@@ -19,8 +19,9 @@ class ScheduleRepositoryImpl @Inject constructor(
 
     override suspend fun insert(schedule: StudySchedule): Result<Long> {
         return try {
-            val id = scheduleDao.insertSchedule(schedule.toEntity())
-            Result.success(id)
+            val insertedId = scheduleDao.insertSchedule(schedule.toEntity())
+            val effectiveId = if (insertedId > 0L) insertedId else schedule.id
+            Result.success(effectiveId)
         } catch (e: Exception) {
             Result.error("Erro ao inserir cronograma: ${e.localizedMessage}", e)
         }

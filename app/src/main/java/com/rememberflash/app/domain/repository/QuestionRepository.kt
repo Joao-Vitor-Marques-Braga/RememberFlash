@@ -17,4 +17,6 @@ interface QuestionRepository {
     suspend fun saveMockExamAttempt(attempt: com.rememberflash.app.domain.model.MockExamAttempt): Result<Long>
     suspend fun resetQuestionsForDiscipline(disciplineId: Long): Result<Unit>
     suspend fun resetQuestionsForContest(contestId: Long): Result<Unit>
+    fun getQuestionsByTopic(topicId: Long): Flow<List<Question>>
+    suspend fun clearQuestionsByTopic(topicId: Long): Result<Unit>
 }

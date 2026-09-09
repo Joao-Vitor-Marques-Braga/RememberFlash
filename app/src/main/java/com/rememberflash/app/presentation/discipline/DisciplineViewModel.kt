@@ -267,7 +267,7 @@ class DisciplineViewModel @Inject constructor(
                 android.util.Log.e("DisciplineViewModel", "Erro ao gerar flashcards via PDF", e)
                 _uiState.value = _uiState.value.copy(
                     isGeneratingFlashcards = false,
-                    error = "Erro detalhado da API Gemini: ${e.localizedMessage ?: e.message ?: e.toString()}"
+                    error = e.message ?: "Falha ao gerar flashcards com a Inteligência Artificial."
                 )
             }
         }

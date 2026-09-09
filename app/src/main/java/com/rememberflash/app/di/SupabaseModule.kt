@@ -19,6 +19,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object SupabaseModule {
 
+    @OptIn(io.github.jan.supabase.annotations.SupabaseInternal::class, io.github.jan.supabase.annotations.SupabaseExperimental::class)
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
@@ -33,6 +34,15 @@ object SupabaseModule {
             supabaseUrl = url,
             supabaseKey = key
         ) {
+            httpEngine = io.ktor.client.engine.okhttp.OkHttp.create {
+                config {
+                    retryOnConnectionFailure(true)
+                    connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            }
+            requestTimeout = kotlin.time.Duration.parse("30s")
             install(Auth)
             install(Postgrest)
             install(Storage)

@@ -271,6 +271,7 @@ class ScheduleViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(isGenerating = false)
                     // Recarrega o cronograma atualizado
                     loadContestAndSchedule(state.contestId)
+                    syncManager.triggerSync()
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -290,6 +291,7 @@ class ScheduleViewModel @Inject constructor(
                 completedMinutes = completedMinutes.coerceAtLeast(0),
                 flashcardsCompleted = flashcardsCompleted.coerceAtLeast(0)
             )
+            syncManager.triggerSync()
         }
     }
 

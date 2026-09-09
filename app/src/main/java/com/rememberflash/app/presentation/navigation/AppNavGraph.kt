@@ -48,19 +48,21 @@ object Routes {
     const val ESSAY_RESULT = "essay_result/{essayId}"
     const val SCHEDULE = "schedule/{contestId}"
     const val SETTINGS = "settings"
-    const val QUESTION_RESOLVE = "question_resolve/{disciplineId}"
+    const val QUESTION_RESOLVE = "question_resolve/{disciplineId}?topicId={topicId}"
     const val TUTOR_CHAT = "tutor_chat/{type}/{id}"
     const val QUESTION_RESOLVE_CONTEST = "question_resolve_contest/{contestId}"
     const val PROFILE = "profile"
+    const val TOPIC_FOLDER = "topic_folder/{disciplineId}/{topicId}"
 
     fun contestDetail(contestId: Long) = "contest_detail/$contestId"
     fun contestForm(contestId: Long? = null) = if (contestId != null) "contest_form?contestId=$contestId" else "contest_form"
     fun disciplineList(contestId: Long) = "discipline_list/$contestId"
     fun flashcardDeck(disciplineId: Long) = "flashcard_deck/$disciplineId"
+    fun topicFolder(disciplineId: Long, topicId: Long) = "topic_folder/$disciplineId/$topicId"
     fun essayResult(essayId: Long) = "essay_result/$essayId"
     fun schedule(contestId: Long) = "schedule/$contestId"
     fun resetPassword(email: String) = "reset_password/$email"
-    fun questionResolve(disciplineId: Long) = "question_resolve/$disciplineId"
+    fun questionResolve(disciplineId: Long, topicId: Long? = null) = if (topicId != null) "question_resolve/$disciplineId?topicId=$topicId" else "question_resolve/$disciplineId"
     fun tutorChat(type: String, id: Long) = "tutor_chat/$type/$id"
     fun questionResolveContest(contestId: Long) = "question_resolve_contest/$contestId"
 }
@@ -214,15 +216,49 @@ fun AppNavGraph(
                 },
                 onNavigateToResolveQuestions = { disciplineId ->
                     navController.navigate(Routes.questionResolve(disciplineId))
+                },
+                onNavigateToTopicFolder = { disciplineId, topicId ->
+                    navController.navigate(Routes.topicFolder(disciplineId, topicId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.TOPIC_FOLDER,
+            arguments = listOf(
+                androidx.navigation.navArgument("disciplineId") {
+                    type = androidx.navigation.NavType.LongType
+                },
+                androidx.navigation.navArgument("topicId") {
+                    type = androidx.navigation.NavType.LongType
+                }
+            )
+        ) {
+            com.rememberflash.app.presentation.topic.TopicFolderScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToResolveQuestions = { disciplineId, topicId ->
+                    navController.navigate(Routes.questionResolve(disciplineId, topicId))
+                },
+                onNavigateToStudyDeck = { disciplineId ->
+                    navController.navigate(Routes.flashcardDeck(disciplineId))
                 }
             )
         }
 
         composable(
             route = Routes.QUESTION_RESOLVE,
-            arguments = listOf(androidx.navigation.navArgument("disciplineId") {
-                type = androidx.navigation.NavType.LongType
-            })
+            arguments = listOf(
+                androidx.navigation.navArgument("disciplineId") {
+                    type = androidx.navigation.NavType.LongType
+                },
+                androidx.navigation.navArgument("topicId") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) {
             QuestionResolveScreen(
                 onNavigateBack = {

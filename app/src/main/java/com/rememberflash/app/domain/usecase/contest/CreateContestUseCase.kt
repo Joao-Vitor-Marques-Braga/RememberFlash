@@ -175,9 +175,9 @@ class CreateContestUseCase @Inject constructor(
 
             contestIdResult
         } catch (e: Throwable) {
-            android.util.Log.e("CreateContestUseCase", "Erro completo ao processar edital", e)
-            val fullErrorLog = "Falha ao processar o edital: ${e.localizedMessage ?: "Erro desconhecido"}\n\nDetalhes:\n${e.stackTraceToString()}"
-            Result.error(fullErrorLog, if (e is Exception) e else Exception(e))
+            android.util.Log.e("CreateContestUseCase", "Erro ao processar edital", e)
+            val errorMessage = e.message?.ifBlank { null } ?: "Falha ao processar o edital com a Inteligência Artificial."
+            Result.error(errorMessage, if (e is Exception) e else Exception(e))
         }
     }
 

@@ -177,7 +177,9 @@ class UpdateContestUseCase @Inject constructor(
             }
             updateResult
         } catch (e: Exception) {
-            Result.error("Falha ao processar e atualizar o edital: ${e.localizedMessage}", e)
+            android.util.Log.e("UpdateContestUseCase", "Erro ao processar e atualizar edital", e)
+            val errorMessage = e.message?.ifBlank { null } ?: "Falha ao processar e atualizar o edital com a Inteligência Artificial."
+            Result.error(errorMessage, e)
         }
     }
 

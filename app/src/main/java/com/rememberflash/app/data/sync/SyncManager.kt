@@ -11,16 +11,21 @@ import com.rememberflash.app.data.local.database.dao.ContestDao
 import com.rememberflash.app.data.local.database.dao.DisciplineDao
 import com.rememberflash.app.data.local.database.dao.FlashcardDao
 import com.rememberflash.app.data.local.database.dao.QuestionDao
+import com.rememberflash.app.data.local.database.dao.ScheduleDao
 import com.rememberflash.app.data.local.database.dao.TopicDao
 import com.rememberflash.app.data.local.database.entity.ContestEntity
+import com.rememberflash.app.data.local.database.entity.DailyGoalEntity
 import com.rememberflash.app.data.local.database.entity.DisciplineEntity
 import com.rememberflash.app.data.local.database.entity.FlashcardEntity
 import com.rememberflash.app.data.local.database.entity.QuestionEntity
+import com.rememberflash.app.data.local.database.entity.ScheduleEntity
 import com.rememberflash.app.data.local.database.entity.TopicEntity
 import com.rememberflash.app.data.remote.supabase.dto.ContestSupabaseDto
+import com.rememberflash.app.data.remote.supabase.dto.DailyGoalSupabaseDto
 import com.rememberflash.app.data.remote.supabase.dto.DisciplineSupabaseDto
 import com.rememberflash.app.data.remote.supabase.dto.FlashcardSupabaseDto
 import com.rememberflash.app.data.remote.supabase.dto.QuestionSupabaseDto
+import com.rememberflash.app.data.remote.supabase.dto.StudyScheduleSupabaseDto
 import com.rememberflash.app.data.remote.supabase.dto.TopicSupabaseDto
 import com.rememberflash.app.data.local.preferences.SecurePreferencesManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,6 +36,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +52,7 @@ class SyncManager @Inject constructor(
     private val topicDao: TopicDao,
     private val flashcardDao: FlashcardDao,
     private val questionDao: QuestionDao,
+    private val scheduleDao: ScheduleDao,
     private val postgrest: Postgrest
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -131,50 +141,76 @@ class SyncManager @Inject constructor(
     suspend fun syncNow(userId: String? = null): com.rememberflash.app.domain.common.Result<String> {
         val currentUserId = userId ?: preferencesManager.getUser()?.id
         if (!isConfigured()) {
+            Log.e("SyncManager", "[SYNC-ERRO] Supabase não configurado no BuildConfig (URL ou AnonKey vazios).")
             return com.rememberflash.app.domain.common.Result.error("Credenciais do Supabase não configuradas no aplicativo.")
         }
+        
+        Log.i("SyncManager", "🔄 =================== [INÍCIO DA SINCRONIZAÇÃO MANUAL] ===================")
+        Log.i("SyncManager", "👤 Usuário ID: ${currentUserId ?: "Desconhecido/Anônimo"}")
+        Log.i("SyncManager", "🌐 Status da Conexão: ${if (_isOnline.value) "ONLINE" else "OFFLINE"}")
+        Log.i("SyncManager", "🔗 Supabase URL: ${BuildConfig.SUPABASE_URL}")
+        
         _isSyncing.value = true
+        val errorList = mutableListOf<String>()
+
         return try {
-            syncUpstreamInternal()
+            syncUpstreamInternal(errorList)
             if (!currentUserId.isNullOrBlank()) {
-                performDownstreamSync(currentUserId)
+                performDownstreamSync(currentUserId, errorList)
+            } else {
+                Log.w("SyncManager", "⚠️ Downstream ignorado: Nenhum usuário autenticado encontrado.")
             }
-            Log.d("SyncManager", "Manual sync completed successfully!")
-            com.rememberflash.app.domain.common.Result.success("Sincronização com o Supabase concluída!")
+
+            if (errorList.isNotEmpty()) {
+                val errorSummary = errorList.joinToString("\n• ")
+                Log.e("SyncManager", "❌ Sincronização concluída com erros:\n• $errorSummary")
+                com.rememberflash.app.domain.common.Result.error("Falhas na sincronização:\n• $errorSummary")
+            } else {
+                Log.i("SyncManager", "✅ =================== [SINCRONIZAÇÃO CONCLUÍDA COM SUCESSO] ===================")
+                com.rememberflash.app.domain.common.Result.success("Sincronização com o Supabase concluída com sucesso!")
+            }
         } catch (e: Throwable) {
-            Log.e("SyncManager", "Manual sync error: ${e.localizedMessage}", e)
-            com.rememberflash.app.domain.common.Result.error("Falha ao sincronizar: ${e.localizedMessage}")
+            Log.e("SyncManager", "❌ Erro inesperado durante sincronização manual: ${e.localizedMessage}", e)
+            com.rememberflash.app.domain.common.Result.error("Falha ao sincronizar: ${e.localizedMessage ?: e.javaClass.simpleName}")
         } finally {
             _isSyncing.value = false
         }
     }
 
-    private suspend fun syncUpstreamInternal() {
+    private suspend fun syncUpstreamInternal(errors: MutableList<String> = mutableListOf()) {
         val unsyncedContests = contestDao.getUnsyncedContests()
         val unsyncedDisciplines = disciplineDao.getUnsyncedDisciplines()
         val unsyncedTopics = topicDao.getUnsyncedTopics()
         val unsyncedFlashcards = flashcardDao.getUnsyncedFlashcards()
         val unsyncedQuestions = questionDao.getUnsyncedQuestions()
+        val unsyncedSchedules = scheduleDao.getUnsyncedSchedules()
+        val unsyncedGoals = scheduleDao.getUnsyncedDailyGoals()
+
+        Log.i("SyncManager", "📤 [UPSTREAM] Verificando itens pendentes no banco local Room:")
+        Log.i("SyncManager", "   - Concursos pendentes: ${unsyncedContests.size}")
+        Log.i("SyncManager", "   - Disciplinas pendentes: ${unsyncedDisciplines.size}")
+        Log.i("SyncManager", "   - Tópicos pendentes: ${unsyncedTopics.size}")
+        Log.i("SyncManager", "   - Flashcards pendentes: ${unsyncedFlashcards.size}")
+        Log.i("SyncManager", "   - Questões pendentes: ${unsyncedQuestions.size}")
+        Log.i("SyncManager", "   - Cronogramas pendentes: ${unsyncedSchedules.size}")
+        Log.i("SyncManager", "   - Metas diárias pendentes: ${unsyncedGoals.size}")
 
         if (unsyncedContests.isEmpty() &&
             unsyncedDisciplines.isEmpty() &&
             unsyncedTopics.isEmpty() &&
             unsyncedFlashcards.isEmpty() &&
-            unsyncedQuestions.isEmpty()
+            unsyncedQuestions.isEmpty() &&
+            unsyncedSchedules.isEmpty() &&
+            unsyncedGoals.isEmpty()
         ) {
-            Log.d("SyncManager", "No upstream items to sync")
+            Log.i("SyncManager", "ℹ️ [UPSTREAM] Todos os dados locais já estão sincronizados com a nuvem.")
             return
         }
-
-        Log.d(
-            "SyncManager",
-            "Upstream sync started: ${unsyncedContests.size} contests, ${unsyncedDisciplines.size} disciplines, " +
-                    "${unsyncedTopics.size} topics, ${unsyncedFlashcards.size} flashcards, ${unsyncedQuestions.size} questions"
-        )
 
         // 1. Contests
         if (unsyncedContests.isNotEmpty()) {
             try {
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedContests.size} concurso(s) para o Supabase (tabela 'contests')...")
                 val dtos = unsyncedContests.map { entity ->
                     ContestSupabaseDto(
                         id = entity.id,
@@ -192,15 +228,18 @@ class SyncManager @Inject constructor(
                         aiDifficulty = entity.aiDifficulty,
                         aiRigor = entity.aiRigor,
                         aiTone = entity.aiTone,
-                        isActive = entity.isActive,
-                        isSynced = true
+                        isActive = entity.isActive
                     )
                 }
-                postgrest.from("contests").upsert(dtos)
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("contests").upsert(chunk)
+                }
                 contestDao.markContestsAsSynced(unsyncedContests.map { it.id })
-                Log.d("SyncManager", "Successfully synced ${unsyncedContests.size} contests to Supabase")
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedContests.size} concurso(s) enviados e marcados como sincronizados!")
             } catch (e: Throwable) {
-                Log.e("SyncManager", "Error syncing contests to Supabase: ${e.localizedMessage}", e)
+                val msg = "Tabela 'contests': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
             }
         }
 
@@ -208,8 +247,9 @@ class SyncManager @Inject constructor(
         if (unsyncedDisciplines.isNotEmpty()) {
             try {
                 val parentContestIds = unsyncedDisciplines.map { it.contestId }.distinct()
-                val parentContests = contestDao.getByIds(parentContestIds)
+                val parentContests = contestDao.getByIds(parentContestIds).filter { !it.isSynced }
                 if (parentContests.isNotEmpty()) {
+                    Log.d("SyncManager", "⬆️ Assegurando envio prévio de ${parentContests.size} concurso(s) pai(s) não sincronizado(s)...")
                     val contestDtos = parentContests.map { entity ->
                         ContestSupabaseDto(
                             id = entity.id,
@@ -227,14 +267,16 @@ class SyncManager @Inject constructor(
                             aiDifficulty = entity.aiDifficulty,
                             aiRigor = entity.aiRigor,
                             aiTone = entity.aiTone,
-                            isActive = entity.isActive,
-                            isSynced = true
+                            isActive = entity.isActive
                         )
                     }
-                    postgrest.from("contests").upsert(contestDtos)
+                    contestDtos.chunked(50).forEach { chunk ->
+                        postgrest.from("contests").upsert(chunk)
+                    }
                     contestDao.markContestsAsSynced(parentContests.map { it.id })
                 }
 
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedDisciplines.size} disciplina(s) para o Supabase (tabela 'disciplines')...")
                 val dtos = unsyncedDisciplines.map { entity ->
                     DisciplineSupabaseDto(
                         id = entity.id,
@@ -243,15 +285,18 @@ class SyncManager @Inject constructor(
                         weight = entity.weight,
                         totalTopics = entity.totalTopics,
                         completedTopics = entity.completedTopics,
-                        isActive = entity.isActive,
-                        isSynced = true
+                        isActive = entity.isActive
                     )
                 }
-                postgrest.from("disciplines").upsert(dtos)
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("disciplines").upsert(chunk)
+                }
                 disciplineDao.markDisciplinesAsSynced(unsyncedDisciplines.map { it.id })
-                Log.d("SyncManager", "Successfully synced ${unsyncedDisciplines.size} disciplines to Supabase")
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedDisciplines.size} disciplina(s) enviadas e marcadas como sincronizadas!")
             } catch (e: Throwable) {
-                Log.e("SyncManager", "Error syncing disciplines to Supabase: ${e.localizedMessage}", e)
+                val msg = "Tabela 'disciplines': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
             }
         }
 
@@ -259,8 +304,9 @@ class SyncManager @Inject constructor(
         if (unsyncedTopics.isNotEmpty()) {
             try {
                 val parentDisciplineIds = unsyncedTopics.map { it.disciplineId }.distinct()
-                val parentDisciplines = disciplineDao.getByIds(parentDisciplineIds)
+                val parentDisciplines = disciplineDao.getByIds(parentDisciplineIds).filter { !it.isSynced }
                 if (parentDisciplines.isNotEmpty()) {
+                    Log.d("SyncManager", "⬆️ Assegurando envio prévio de ${parentDisciplines.size} disciplina(s) pai(s) não sincronizada(s)...")
                     val disciplineDtos = parentDisciplines.map { entity ->
                         DisciplineSupabaseDto(
                             id = entity.id,
@@ -269,38 +315,82 @@ class SyncManager @Inject constructor(
                             weight = entity.weight,
                             totalTopics = entity.totalTopics,
                             completedTopics = entity.completedTopics,
-                            isActive = entity.isActive,
-                            isSynced = true
+                            isActive = entity.isActive
                         )
                     }
-                    postgrest.from("disciplines").upsert(disciplineDtos)
+                    disciplineDtos.chunked(50).forEach { chunk ->
+                        postgrest.from("disciplines").upsert(chunk)
+                    }
                     disciplineDao.markDisciplinesAsSynced(parentDisciplines.map { it.id })
                 }
 
-                val dtos = unsyncedTopics.map { entity ->
-                    TopicSupabaseDto(
-                        id = entity.id,
-                        disciplineId = entity.disciplineId,
-                        contestId = entity.contestId,
-                        name = entity.name,
-                        description = entity.description,
-                        isCompleted = entity.isCompleted,
-                        orderIndex = entity.orderIndex,
-                        createdAt = entity.createdAt,
-                        isSynced = true
-                    )
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedTopics.size} tópico(s) para o Supabase (tabela 'topics')...")
+                Log.d("SyncManager", "🔍 Amostra de tópicos: ${unsyncedTopics.take(3).map { "id=${it.id}, disc=${it.disciplineId}, contest=${it.contestId}, name=${it.name}" }}")
+                
+                var successCount = 0
+                unsyncedTopics.chunked(20).forEach { topicChunk ->
+                    try {
+                        val dtos = topicChunk.map { entity ->
+                            val cleanName = if (entity.name.length > 250) entity.name.take(247) + "..." else entity.name
+                            val cleanDesc = if (entity.name.length > 250 && entity.description.isNullOrBlank()) {
+                                entity.name
+                            } else {
+                                entity.description
+                            }
+                            TopicSupabaseDto(
+                                id = entity.id,
+                                disciplineId = entity.disciplineId,
+                                contestId = entity.contestId,
+                                name = cleanName,
+                                description = cleanDesc,
+                                isCompleted = entity.isCompleted,
+                                orderIndex = entity.orderIndex,
+                                createdAt = entity.createdAt
+                            )
+                        }
+                        postgrest.from("topics").upsert(dtos)
+                        topicDao.markTopicsAsSynced(topicChunk.map { it.id })
+                        successCount += topicChunk.size
+                        Log.d("SyncManager", "   ↳ Lote de ${topicChunk.size} tópicos salvo no Supabase com sucesso ($successCount/${unsyncedTopics.size})")
+                    } catch (chunkError: Throwable) {
+                        val msg = "Lote de tópicos [IDs: ${topicChunk.firstOrNull()?.id}..${topicChunk.lastOrNull()?.id}]: ${chunkError.localizedMessage ?: chunkError.javaClass.simpleName}"
+                        Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", chunkError)
+                        errors.add(msg)
+                    }
                 }
-                postgrest.from("topics").upsert(dtos)
-                topicDao.markTopicsAsSynced(unsyncedTopics.map { it.id })
-                Log.d("SyncManager", "Successfully synced ${unsyncedTopics.size} topics to Supabase")
+                Log.i("SyncManager", "✅ [UPSTREAM] $successCount de ${unsyncedTopics.size} tópico(s) sincronizados com sucesso!")
             } catch (e: Throwable) {
-                Log.e("SyncManager", "Error syncing topics to Supabase: ${e.localizedMessage}", e)
+                val msg = "Tabela 'topics': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
             }
         }
 
         // 4. Flashcards
         if (unsyncedFlashcards.isNotEmpty()) {
             try {
+                val parentDisciplineIds = unsyncedFlashcards.map { it.disciplineId }.distinct()
+                val parentDisciplines = disciplineDao.getByIds(parentDisciplineIds).filter { !it.isSynced }
+                if (parentDisciplines.isNotEmpty()) {
+                    Log.d("SyncManager", "⬆️ Assegurando envio prévio de ${parentDisciplines.size} disciplina(s) pai(s) para os flashcards...")
+                    val disciplineDtos = parentDisciplines.map { entity ->
+                        DisciplineSupabaseDto(
+                            id = entity.id,
+                            contestId = entity.contestId,
+                            name = entity.name,
+                            weight = entity.weight,
+                            totalTopics = entity.totalTopics,
+                            completedTopics = entity.completedTopics,
+                            isActive = entity.isActive
+                        )
+                    }
+                    disciplineDtos.chunked(50).forEach { chunk ->
+                        postgrest.from("disciplines").upsert(chunk)
+                    }
+                    disciplineDao.markDisciplinesAsSynced(parentDisciplines.map { it.id })
+                }
+
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedFlashcards.size} flashcard(s) para o Supabase (tabela 'flashcards')...")
                 val dtos = unsyncedFlashcards.map { entity ->
                     FlashcardSupabaseDto(
                         id = entity.id,
@@ -314,15 +404,18 @@ class SyncManager @Inject constructor(
                         interval = entity.interval,
                         repetitions = entity.repetitions,
                         tokensSpent = entity.tokensSpent,
-                        createdAt = entity.createdAt,
-                        isSynced = true
+                        createdAt = entity.createdAt
                     )
                 }
-                postgrest.from("flashcards").upsert(dtos)
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("flashcards").upsert(chunk)
+                }
                 flashcardDao.markFlashcardsAsSynced(unsyncedFlashcards.map { it.id })
-                Log.d("SyncManager", "Successfully synced ${unsyncedFlashcards.size} flashcards to Supabase")
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedFlashcards.size} flashcard(s) enviados e marcados como sincronizados!")
             } catch (e: Throwable) {
-                Log.e("SyncManager", "Error syncing flashcards to Supabase: ${e.localizedMessage}", e)
+                val msg = "Tabela 'flashcards': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
             }
         }
 
@@ -330,8 +423,9 @@ class SyncManager @Inject constructor(
         if (unsyncedQuestions.isNotEmpty()) {
             try {
                 val parentDisciplineIds = unsyncedQuestions.map { it.disciplineId }.distinct()
-                val parentDisciplines = disciplineDao.getByIds(parentDisciplineIds)
+                val parentDisciplines = disciplineDao.getByIds(parentDisciplineIds).filter { !it.isSynced }
                 if (parentDisciplines.isNotEmpty()) {
+                    Log.d("SyncManager", "⬆️ Assegurando envio prévio de ${parentDisciplines.size} disciplina(s) pai(s) para as questões...")
                     val disciplineDtos = parentDisciplines.map { entity ->
                         DisciplineSupabaseDto(
                             id = entity.id,
@@ -340,14 +434,16 @@ class SyncManager @Inject constructor(
                             weight = entity.weight,
                             totalTopics = entity.totalTopics,
                             completedTopics = entity.completedTopics,
-                            isActive = entity.isActive,
-                            isSynced = true
+                            isActive = entity.isActive
                         )
                     }
-                    postgrest.from("disciplines").upsert(disciplineDtos)
+                    disciplineDtos.chunked(50).forEach { chunk ->
+                        postgrest.from("disciplines").upsert(chunk)
+                    }
                     disciplineDao.markDisciplinesAsSynced(parentDisciplines.map { it.id })
                 }
 
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedQuestions.size} questão(ões) para o Supabase (tabela 'questions')...")
                 val dtos = unsyncedQuestions.map { entity ->
                     QuestionSupabaseDto(
                         id = entity.id,
@@ -362,26 +458,91 @@ class SyncManager @Inject constructor(
                         isCorrect = entity.isCorrect,
                         answeredAt = entity.answeredAt,
                         tokensSpent = entity.tokensSpent,
-                        createdAt = entity.createdAt,
-                        isSynced = true
+                        createdAt = entity.createdAt
                     )
                 }
-                postgrest.from("questions").upsert(dtos)
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("questions").upsert(chunk)
+                }
                 questionDao.markQuestionsAsSynced(unsyncedQuestions.map { it.id })
-                Log.d("SyncManager", "Successfully synced ${unsyncedQuestions.size} questions to Supabase")
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedQuestions.size} questão(ões) enviadas e marcadas como sincronizadas!")
             } catch (e: Throwable) {
-                Log.e("SyncManager", "Error syncing questions to Supabase: ${e.localizedMessage}", e)
+                val msg = "Tabela 'questions': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
+            }
+        }
+
+        // 6. Study Schedules
+        if (unsyncedSchedules.isNotEmpty()) {
+            try {
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedSchedules.size} cronograma(s) para o Supabase (tabela 'study_schedules')...")
+                val dtos = unsyncedSchedules.map { entity ->
+                    val examDateFormatted = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(entity.examDate))
+                    val createdAtFormatted = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(entity.createdAt))
+                    val lastRecalcFormatted = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(entity.lastRecalculatedAt))
+                    StudyScheduleSupabaseDto(
+                        id = entity.id,
+                        contestId = entity.contestId,
+                        examDate = examDateFormatted,
+                        availableHoursPerDay = entity.availableHoursPerDay,
+                        restDaysPerWeek = entity.restDaysPerWeek,
+                        tokensSpent = entity.tokensSpent,
+                        createdAt = createdAtFormatted,
+                        lastRecalculatedAt = lastRecalcFormatted
+                    )
+                }
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("study_schedules").upsert(chunk)
+                }
+                scheduleDao.markSchedulesAsSynced(unsyncedSchedules.map { it.id })
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedSchedules.size} cronograma(s) enviados e marcados como sincronizados!")
+            } catch (e: Throwable) {
+                val msg = "Tabela 'study_schedules': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
+            }
+        }
+
+        // 7. Daily Goals
+        if (unsyncedGoals.isNotEmpty()) {
+            try {
+                Log.d("SyncManager", "⬆️ Enviando ${unsyncedGoals.size} meta(s) diária(s) para o Supabase (tabela 'daily_goals')...")
+                val dtos = unsyncedGoals.map { entity ->
+                    val dateFormatted = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(entity.date))
+                    DailyGoalSupabaseDto(
+                        id = entity.id,
+                        scheduleId = entity.scheduleId,
+                        disciplineId = entity.disciplineId,
+                        date = dateFormatted,
+                        targetMinutes = entity.targetMinutes,
+                        completedMinutes = entity.completedMinutes,
+                        flashcardsTarget = entity.flashcardsTarget,
+                        flashcardsCompleted = entity.flashcardsCompleted
+                    )
+                }
+                dtos.chunked(50).forEach { chunk ->
+                    postgrest.from("daily_goals").upsert(chunk)
+                }
+                scheduleDao.markDailyGoalsAsSynced(unsyncedGoals.map { it.id })
+                Log.i("SyncManager", "✅ [UPSTREAM] ${unsyncedGoals.size} meta(s) diária(s) enviadas e marcadas como sincronizadas!")
+            } catch (e: Throwable) {
+                val msg = "Tabela 'daily_goals': ${e.localizedMessage ?: e.javaClass.simpleName}"
+                Log.e("SyncManager", "❌ [UPSTREAM-ERRO] $msg", e)
+                errors.add(msg)
             }
         }
     }
 
-    private suspend fun performDownstreamSync(userId: String) {
+    private suspend fun performDownstreamSync(userId: String, errors: MutableList<String> = mutableListOf()) {
         try {
-            Log.d("SyncManager", "Starting downstream sync for user: $userId")
+            Log.i("SyncManager", "⬇️ [DOWNSTREAM] Buscando dados da nuvem para o usuário: $userId...")
 
             val remoteContests = postgrest.from("contests").select {
                 filter { eq("user_id", userId) }
             }.decodeList<ContestSupabaseDto>()
+
+            Log.i("SyncManager", "📥 [DOWNSTREAM] Concursos recebidos do Supabase: ${remoteContests.size}")
 
             if (remoteContests.isNotEmpty()) {
                 val contestEntities = remoteContests.map { dto ->
@@ -413,6 +574,8 @@ class SyncManager @Inject constructor(
                         filter { isIn("contest_id", contestIds) }
                     }.decodeList<DisciplineSupabaseDto>()
 
+                    Log.i("SyncManager", "📥 [DOWNSTREAM] Disciplinas recebidas do Supabase: ${remoteDisciplines.size}")
+
                     if (remoteDisciplines.isNotEmpty()) {
                         val disciplineEntities = remoteDisciplines.map { dto ->
                             DisciplineEntity(
@@ -433,6 +596,8 @@ class SyncManager @Inject constructor(
                         val remoteTopics = postgrest.from("topics").select {
                             filter { isIn("contest_id", contestIds) }
                         }.decodeList<TopicSupabaseDto>()
+
+                        Log.i("SyncManager", "📥 [DOWNSTREAM] Tópicos recebidos do Supabase: ${remoteTopics.size}")
 
                         if (remoteTopics.isNotEmpty()) {
                             val topicEntities = remoteTopics.map { dto ->
@@ -455,6 +620,8 @@ class SyncManager @Inject constructor(
                             val remoteFlashcards = postgrest.from("flashcards").select {
                                 filter { isIn("discipline_id", disciplineIds) }
                             }.decodeList<FlashcardSupabaseDto>()
+
+                            Log.i("SyncManager", "📥 [DOWNSTREAM] Flashcards recebidos do Supabase: ${remoteFlashcards.size}")
 
                             if (remoteFlashcards.isNotEmpty()) {
                                 val flashcardEntities = remoteFlashcards.map { dto ->
@@ -481,6 +648,8 @@ class SyncManager @Inject constructor(
                                 filter { isIn("discipline_id", disciplineIds) }
                             }.decodeList<QuestionSupabaseDto>()
 
+                            Log.i("SyncManager", "📥 [DOWNSTREAM] Questões recebidas do Supabase: ${remoteQuestions.size}")
+
                             if (remoteQuestions.isNotEmpty()) {
                                 val questionEntities = remoteQuestions.map { dto ->
                                     QuestionEntity(
@@ -503,12 +672,87 @@ class SyncManager @Inject constructor(
                                 questionDao.insertAll(questionEntities)
                             }
                         }
+
+                        // Download study_schedules
+                        val remoteSchedules = postgrest.from("study_schedules").select {
+                            filter { isIn("contest_id", contestIds) }
+                        }.decodeList<StudyScheduleSupabaseDto>()
+
+                        Log.i("SyncManager", "📥 [DOWNSTREAM] Cronogramas recebidos do Supabase: ${remoteSchedules.size}")
+
+                        if (remoteSchedules.isNotEmpty()) {
+                            val scheduleEntities = remoteSchedules.map { dto ->
+                                val parsedExamDate = try {
+                                    SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dto.examDate ?: "")?.time ?: System.currentTimeMillis()
+                                } catch (_: Exception) {
+                                    System.currentTimeMillis()
+                                }
+                                val parsedCreatedAt = try {
+                                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(dto.createdAt ?: "")?.time ?: System.currentTimeMillis()
+                                } catch (_: Exception) {
+                                    System.currentTimeMillis()
+                                }
+                                val parsedLastRecalc = try {
+                                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(dto.lastRecalculatedAt ?: "")?.time ?: System.currentTimeMillis()
+                                } catch (_: Exception) {
+                                    System.currentTimeMillis()
+                                }
+
+                                ScheduleEntity(
+                                    id = dto.id ?: 0L,
+                                    contestId = dto.contestId,
+                                    examDate = parsedExamDate,
+                                    availableHoursPerDay = dto.availableHoursPerDay ?: 2.0,
+                                    restDaysPerWeek = dto.restDaysPerWeek ?: 1,
+                                    tokensSpent = dto.tokensSpent ?: 0,
+                                    createdAt = parsedCreatedAt,
+                                    lastRecalculatedAt = parsedLastRecalc,
+                                    isSynced = true
+                                )
+                            }
+                            scheduleEntities.forEach { sched ->
+                                scheduleDao.insertSchedule(sched)
+                            }
+
+                            val scheduleIds = remoteSchedules.mapNotNull { it.id }
+                            if (scheduleIds.isNotEmpty()) {
+                                val remoteDailyGoals = postgrest.from("daily_goals").select {
+                                    filter { isIn("schedule_id", scheduleIds) }
+                                }.decodeList<DailyGoalSupabaseDto>()
+
+                                Log.i("SyncManager", "📥 [DOWNSTREAM] Metas diárias recebidas do Supabase: ${remoteDailyGoals.size}")
+
+                                if (remoteDailyGoals.isNotEmpty()) {
+                                    val goalEntities = remoteDailyGoals.map { dto ->
+                                        val parsedDate = try {
+                                            SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dto.date)?.time ?: System.currentTimeMillis()
+                                        } catch (_: Exception) {
+                                            System.currentTimeMillis()
+                                        }
+                                        DailyGoalEntity(
+                                            id = dto.id ?: 0L,
+                                            scheduleId = dto.scheduleId,
+                                            date = parsedDate,
+                                            disciplineId = dto.disciplineId,
+                                            targetMinutes = dto.targetMinutes,
+                                            completedMinutes = dto.completedMinutes ?: 0,
+                                            flashcardsTarget = dto.flashcardsTarget ?: 0,
+                                            flashcardsCompleted = dto.flashcardsCompleted ?: 0,
+                                            isSynced = true
+                                        )
+                                    }
+                                    scheduleDao.insertDailyGoals(goalEntities)
+                                }
+                            }
+                        }
                     }
                 }
             }
-            Log.d("SyncManager", "Downstream sync finished successfully.")
+            Log.i("SyncManager", "✅ [DOWNSTREAM] Download e restauração da nuvem concluídos com sucesso.")
         } catch (e: Throwable) {
-            Log.e("SyncManager", "Downstream sync failed: ${e.localizedMessage}", e)
+            val msg = "Download da nuvem (Downstream): ${e.localizedMessage ?: e.javaClass.simpleName}"
+            Log.e("SyncManager", "❌ [DOWNSTREAM-ERRO] $msg", e)
+            errors.add(msg)
         }
     }
 

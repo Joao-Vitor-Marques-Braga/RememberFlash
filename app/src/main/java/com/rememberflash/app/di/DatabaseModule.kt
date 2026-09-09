@@ -35,7 +35,8 @@ object DatabaseModule {
                 RememberFlashDatabase.MIGRATION_2_3,
                 RememberFlashDatabase.MIGRATION_3_4,
                 RememberFlashDatabase.MIGRATION_10_11,
-                RememberFlashDatabase.MIGRATION_11_12
+                RememberFlashDatabase.MIGRATION_11_12,
+                RememberFlashDatabase.MIGRATION_12_13
             )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()

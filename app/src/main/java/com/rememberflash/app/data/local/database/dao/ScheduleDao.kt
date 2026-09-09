@@ -33,7 +33,8 @@ interface ScheduleDao {
         """
         UPDATE daily_goals SET 
             completed_minutes = :completedMinutes, 
-            flashcards_completed = :flashcardsCompleted 
+            flashcards_completed = :flashcardsCompleted,
+            is_synced = 0
         WHERE id = :goalId
         """
     )
@@ -45,4 +46,22 @@ interface ScheduleDao {
 
     @Query("DELETE FROM daily_goals WHERE schedule_id = :scheduleId")
     suspend fun clearDailyGoalsBySchedule(scheduleId: Long)
+
+    @Query("SELECT * FROM study_schedules WHERE is_synced = 0")
+    suspend fun getUnsyncedSchedules(): List<ScheduleEntity>
+
+    @Query("SELECT * FROM daily_goals WHERE is_synced = 0")
+    suspend fun getUnsyncedDailyGoals(): List<DailyGoalEntity>
+
+    @Query("UPDATE study_schedules SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markSchedulesAsSynced(ids: List<Long>)
+
+    @Query("UPDATE daily_goals SET is_synced = 1 WHERE id IN (:ids)")
+    suspend fun markDailyGoalsAsSynced(ids: List<Long>)
+
+    @Query("SELECT * FROM study_schedules")
+    suspend fun getAllSchedules(): List<ScheduleEntity>
+
+    @Query("SELECT * FROM daily_goals")
+    suspend fun getAllDailyGoals(): List<DailyGoalEntity>
 }

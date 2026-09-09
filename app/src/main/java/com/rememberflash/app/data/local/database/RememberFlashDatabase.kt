@@ -37,7 +37,7 @@ import com.rememberflash.app.data.local.database.entity.TopicEntity
         DailyGoalEntity::class,
         MockExamAttemptEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -105,6 +105,13 @@ abstract class RememberFlashDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `topics` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE `questions` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `study_schedules` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `daily_goals` ADD COLUMN `is_synced` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

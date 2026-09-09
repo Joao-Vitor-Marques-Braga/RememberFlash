@@ -29,9 +29,14 @@ class QuestionResolveViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QuestionResolveUiState())
     val uiState: StateFlow<QuestionResolveUiState> = _uiState.asStateFlow()
 
-    private val disciplineId: Long = checkNotNull(savedStateHandle["disciplineId"]) {
+    private val disciplineId: Long = checkNotNull(
+        savedStateHandle.get<Long>("disciplineId") ?: savedStateHandle.get<String>("disciplineId")?.toLongOrNull()
+    ) {
         "disciplineId é obrigatório"
     }
+
+    private val topicId: Long? = savedStateHandle.get<Long>("topicId")
+        ?: savedStateHandle.get<String>("topicId")?.toLongOrNull()
 
     init {
         loadData()
@@ -51,11 +56,15 @@ class QuestionResolveViewModel @Inject constructor(
             }
             _uiState.value = _uiState.value.copy(disciplineName = disciplineName)
 
-            // Carrega questões
-            getQuestionsByDisciplineUseCase(disciplineId).collectLatest { list ->
-                // [BUG #3 — FIX] Não sobrescreve currentQuestionStartTime em emissões
-                // subsequentes do Room (disparadas por answerQuestion() via UPDATE).
-                // O timer só é inicializado na primeira carga, quando ainda vale 0L.
+            // Carrega questões (do tópico específico ou gerais da disciplina)
+            val questionsFlow = if (topicId != null && topicId > 0L) {
+                questionRepository.getQuestionsByTopic(topicId)
+            } else {
+                getQuestionsByDisciplineUseCase(disciplineId)
+            }
+
+            questionsFlow.collectLatest { list ->
+                // Não sobrescreve currentQuestionStartTime em emissões subsequentes
                 val currentStartTime = _uiState.value.currentQuestionStartTime
                 _uiState.value = _uiState.value.copy(
                     questions = list.sortedBy { it.createdAt },
