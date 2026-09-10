@@ -38,9 +38,6 @@ data class TopicEntity(
 
     val description: String? = null,
 
-    @ColumnInfo(name = "is_completed")
-    val isCompleted: Boolean = false,
-
     @ColumnInfo(name = "order_index")
     val orderIndex: Int = 0,
 

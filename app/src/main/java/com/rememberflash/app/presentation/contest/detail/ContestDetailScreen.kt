@@ -773,7 +773,7 @@ fun DisciplineItemCard(
                 
                 if (discipline.totalTopics > 0) {
                     Text(
-                        text = "Progresso: ${discipline.completedTopics}/${discipline.totalTopics} tópicos",
+                        text = "${discipline.totalTopics} pasta(s) de tópico",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)

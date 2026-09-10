@@ -12,11 +12,7 @@ data class Discipline(
     val name: String,
     val weight: Double = 1.0,
     val totalTopics: Int = 0,
-    val completedTopics: Int = 0,
     val isActive: Boolean = true,
     val isSynced: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
-) {
-    val progressPercentage: Double
-        get() = if (totalTopics > 0) (completedTopics.toDouble() / totalTopics) * 100.0 else 0.0
-}
+)

@@ -110,16 +110,6 @@ class TopicFolderViewModel @Inject constructor(
         }
     }
 
-    fun toggleTopicCompletion(isDone: Boolean) {
-        viewModelScope.launch {
-            topicRepository.setCompletion(topicId, isDone)
-            topicRepository.syncDisciplineTopicCounters(disciplineId)
-            val updatedTopic = _uiState.value.topic?.copy(isCompleted = isDone)
-            _uiState.value = _uiState.value.copy(topic = updatedTopic)
-            syncManager.triggerSync()
-        }
-    }
-
     fun createFlashcard(front: String, back: String, onComplete: () -> Unit) {
         viewModelScope.launch {
             val card = Flashcard(

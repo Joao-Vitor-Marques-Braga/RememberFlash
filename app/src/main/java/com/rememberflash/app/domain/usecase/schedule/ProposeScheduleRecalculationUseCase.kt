@@ -86,7 +86,6 @@ class ProposeScheduleRecalculationUseCase @Inject constructor(
 
             // Pesos propostos: aplica multiplicador de dificuldade se acertos < 70%
             val proposedWeights = disciplines.map { discipline ->
-                val progressFactor = 1.0 - (discipline.progressPercentage / 100.0)
                 val accuracy = accuracyMap[discipline.id]
                 val difficultyMultiplier = if (accuracy != null && accuracy < 70.0) {
                     // Quanto pior a nota, maior o foco (multiplicador entre 1.3 e 2.0)
@@ -94,7 +93,7 @@ class ProposeScheduleRecalculationUseCase @Inject constructor(
                 } else {
                     1.0
                 }
-                val adjustedWeight = discipline.weight * progressFactor.coerceAtLeast(0.1) * difficultyMultiplier
+                val adjustedWeight = discipline.weight.coerceAtLeast(0.1) * difficultyMultiplier
                 discipline to adjustedWeight
             }
 

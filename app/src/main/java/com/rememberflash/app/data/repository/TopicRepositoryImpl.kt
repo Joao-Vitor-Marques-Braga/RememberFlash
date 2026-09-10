@@ -120,27 +120,13 @@ class TopicRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun setCompletion(topicId: Long, isCompleted: Boolean): Result<Unit> {
-        return try {
-            val topic = topicDao.getById(topicId)
-                ?: return Result.error("Subtópico não encontrado")
-            topicDao.setCompletion(topicId, isCompleted)
-            syncDisciplineTopicCounters(topic.disciplineId)
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.error("Erro ao alterar status do subtópico: ${e.localizedMessage}", e)
-        }
-    }
-
     override suspend fun syncDisciplineTopicCounters(disciplineId: Long): Result<Unit> {
         return try {
             val discEntity = disciplineDao.getById(disciplineId) ?: return Result.success(Unit)
             val total = topicDao.countTotalByDiscipline(disciplineId)
-            val completed = topicDao.countCompletedByDiscipline(disciplineId)
             disciplineDao.update(
                 discEntity.copy(
-                    totalTopics = total,
-                    completedTopics = completed
+                    totalTopics = total
                 )
             )
             Result.success(Unit)

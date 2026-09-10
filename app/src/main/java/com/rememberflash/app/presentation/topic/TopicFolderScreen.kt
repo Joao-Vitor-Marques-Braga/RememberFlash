@@ -147,7 +147,7 @@ fun TopicFolderScreen(
                             )
                         }
                         Text(
-                            text = "Matéria: ${uiState.discipline?.name ?: "Carregando..."}",
+                            text = "Matéria: ${uiState.discipline?.name ?: "Carregando..."} • ${uiState.flashcards.size} cards • ${uiState.questions.size} questões",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -191,55 +191,6 @@ fun TopicFolderScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
-            // Status do Tópico (Concluído / Pendente)
-            Surface(
-                color = if (uiState.topic?.isCompleted == true) SuccessGreen.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = if (uiState.topic?.isCompleted == true) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                            contentDescription = null,
-                            tint = if (uiState.topic?.isCompleted == true) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = if (uiState.topic?.isCompleted == true) "Tópico Estudado e Concluído" else "Tópico Pendente de Estudo",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (uiState.topic?.isCompleted == true) SuccessGreen else MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Marque quando terminar de estudar este conteúdo",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Switch(
-                        checked = uiState.topic?.isCompleted == true,
-                        onCheckedChange = { isDone ->
-                            viewModel.toggleTopicCompletion(isDone)
-                        }
-                    )
-                }
-            }
-
             // Tabs (Flashcards / Questões)
             TabRow(
                 selectedTabIndex = selectedTab,

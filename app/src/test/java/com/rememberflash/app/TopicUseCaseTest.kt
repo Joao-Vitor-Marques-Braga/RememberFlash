@@ -6,7 +6,6 @@ import com.rememberflash.app.domain.repository.TopicRepository
 import com.rememberflash.app.domain.usecase.topic.CreateTopicUseCase
 import com.rememberflash.app.domain.usecase.topic.DeleteTopicUseCase
 import com.rememberflash.app.domain.usecase.topic.GetTopicsByDisciplineUseCase
-import com.rememberflash.app.domain.usecase.topic.ToggleTopicCompletionUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -22,7 +21,6 @@ class TopicUseCaseTest {
 
     private lateinit var fakeTopicRepository: FakeTopicRepository
     private lateinit var createTopicUseCase: CreateTopicUseCase
-    private lateinit var toggleTopicCompletionUseCase: ToggleTopicCompletionUseCase
     private lateinit var getTopicsByDisciplineUseCase: GetTopicsByDisciplineUseCase
     private lateinit var deleteTopicUseCase: DeleteTopicUseCase
 
@@ -91,15 +89,6 @@ class TopicUseCaseTest {
             return if (item != null) Result.success(item) else Result.error("Não encontrado")
         }
 
-        override suspend fun setCompletion(topicId: Long, isCompleted: Boolean): Result<Unit> {
-            val index = topics.indexOfFirst { it.id == topicId }
-            if (index != -1) {
-                topics[index] = topics[index].copy(isCompleted = isCompleted)
-                notifyChange()
-            }
-            return Result.success(Unit)
-        }
-
         override suspend fun syncDisciplineTopicCounters(disciplineId: Long): Result<Unit> {
             return Result.success(Unit)
         }
@@ -109,7 +98,6 @@ class TopicUseCaseTest {
     fun setup() {
         fakeTopicRepository = FakeTopicRepository()
         createTopicUseCase = CreateTopicUseCase(fakeTopicRepository)
-        toggleTopicCompletionUseCase = ToggleTopicCompletionUseCase(fakeTopicRepository)
         getTopicsByDisciplineUseCase = GetTopicsByDisciplineUseCase(fakeTopicRepository)
         deleteTopicUseCase = DeleteTopicUseCase(fakeTopicRepository)
     }
@@ -139,19 +127,6 @@ class TopicUseCaseTest {
         assertEquals(1L, createdId)
         assertEquals(1, fakeTopicRepository.topics.size)
         assertEquals("Modelagem de Dados e SQL", fakeTopicRepository.topics.first().name)
-        assertFalse(fakeTopicRepository.topics.first().isCompleted)
-    }
-
-    @Test
-    fun `toggleTopicCompletionUseCase updates topic completion state`() = runTest {
-        val createResult = createTopicUseCase(1L, 10L, "Álgebra Relacional")
-        val topicId = (createResult as Result.Success).data
-
-        val toggleResult = toggleTopicCompletionUseCase(topicId, isCompleted = true)
-
-        assertTrue(toggleResult is Result.Success)
-        val topic = fakeTopicRepository.topics.first { it.id == topicId }
-        assertTrue(topic.isCompleted)
     }
 
     @Test

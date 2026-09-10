@@ -37,7 +37,7 @@ import com.rememberflash.app.data.local.database.entity.TopicEntity
         DailyGoalEntity::class,
         MockExamAttemptEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

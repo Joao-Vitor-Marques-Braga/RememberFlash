@@ -32,9 +32,6 @@ data class DisciplineEntity(
     @ColumnInfo(name = "total_topics")
     val totalTopics: Int = 0,
 
-    @ColumnInfo(name = "completed_topics")
-    val completedTopics: Int = 0,
-
     @ColumnInfo(name = "is_active")
     val isActive: Boolean = true,
 

@@ -12,7 +12,6 @@ data class Topic(
     val contestId: Long,
     val name: String,
     val description: String? = null,
-    val isCompleted: Boolean = false,
     val orderIndex: Int = 0,
     val isSynced: Boolean = false,
     val flashcardsCount: Int = 0,

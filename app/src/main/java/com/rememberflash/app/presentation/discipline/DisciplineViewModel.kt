@@ -30,7 +30,6 @@ import javax.inject.Inject
 import com.rememberflash.app.domain.usecase.topic.CreateTopicUseCase
 import com.rememberflash.app.domain.usecase.topic.DeleteTopicUseCase
 import com.rememberflash.app.domain.usecase.topic.GetTopicsByDisciplineUseCase
-import com.rememberflash.app.domain.usecase.topic.ToggleTopicCompletionUseCase
 import com.rememberflash.app.domain.usecase.topic.UpdateTopicUseCase
 
 @HiltViewModel
@@ -38,7 +37,6 @@ class DisciplineViewModel @Inject constructor(
     private val getDisciplineByIdUseCase: GetDisciplineByIdUseCase,
     private val getTopicsByDisciplineUseCase: GetTopicsByDisciplineUseCase,
     private val createTopicUseCase: CreateTopicUseCase,
-    private val toggleTopicCompletionUseCase: ToggleTopicCompletionUseCase,
     private val deleteTopicUseCase: DeleteTopicUseCase,
     private val updateTopicUseCase: UpdateTopicUseCase,
     private val getFlashcardsByDisciplineUseCase: GetFlashcardsByDisciplineUseCase,
@@ -134,13 +132,6 @@ class DisciplineViewModel @Inject constructor(
 
     fun selectTopic(topicId: Long?) {
         _uiState.value = _uiState.value.copy(selectedTopicId = topicId)
-    }
-
-    fun toggleTopicCompletion(topicId: Long, isCompleted: Boolean) {
-        viewModelScope.launch {
-            toggleTopicCompletionUseCase(topicId, isCompleted)
-            syncManager.triggerSync()
-        }
     }
 
     fun createTopic(name: String, description: String? = null, onSuccess: () -> Unit = {}) {

@@ -91,7 +91,7 @@ fun DisciplineScreen(
                         )
                         if (uiState.topics.isNotEmpty()) {
                             Text(
-                                text = "${uiState.discipline?.completedTopics ?: 0}/${uiState.topics.size} pastas de tópicos concluídas",
+                                text = "${uiState.topics.size} pastas de tópicos",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -148,57 +148,6 @@ fun DisciplineScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
-
-                // 1. BARRA DE PROGRESSO DA MATÉRIA
-                item {
-                    val total = uiState.topics.size
-                    val completed = uiState.topics.count { it.isCompleted }
-                    val progress = if (total > 0) completed.toFloat() / total.toFloat() else 0f
-                    val pct = (progress * 100).toInt()
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Progresso da Disciplina",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = "$pct%",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (pct >= 100) SuccessGreen else MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
-                                color = if (pct >= 100) SuccessGreen else MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surface
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = if (total > 0) "$completed de $total tópicos concluídos" else "Nenhum tópico cadastrado",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
 
                 // 2. CARD SIMULADO GERAL DA DISCIPLINA
                 item {
@@ -367,9 +316,6 @@ fun DisciplineScreen(
                             topic = topic,
                             onClick = {
                                 onNavigateToTopicFolder(viewModel.disciplineId, topic.id)
-                            },
-                            onToggleCompletion = { isDone ->
-                                viewModel.toggleTopicCompletion(topic.id, isDone)
                             },
                             onDelete = {
                                 topicToDelete = topic
@@ -561,7 +507,6 @@ fun DisciplineScreen(
 fun TopicFolderItemCard(
     topic: Topic,
     onClick: () -> Unit,
-    onToggleCompletion: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -572,11 +517,7 @@ fun TopicFolderItemCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (topic.isCompleted) {
-                SuccessGreen.copy(alpha = 0.08f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-            }
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
         )
     ) {
         Row(
@@ -591,15 +532,15 @@ fun TopicFolderItemCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
-                    color = if (topic.isCompleted) SuccessGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (topic.isCompleted) Icons.Default.FolderSpecial else Icons.Default.Folder,
+                            imageVector = Icons.Default.Folder,
                             contentDescription = null,
-                            tint = if (topic.isCompleted) SuccessGreen else MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -628,27 +569,11 @@ fun TopicFolderItemCard(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = if (topic.isCompleted) SuccessGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = if (topic.isCompleted) "Estudado ✓" else "Pendente",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (topic.isCompleted) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = "Toque para abrir ➔",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = "Toque para abrir ➔",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
@@ -661,20 +586,6 @@ fun TopicFolderItemCard(
                     expanded = isMenuExpanded,
                     onDismissRequest = { isMenuExpanded = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(if (topic.isCompleted) "Marcar como Pendente" else "Marcar como Estudado") },
-                        onClick = {
-                            isMenuExpanded = false
-                            onToggleCompletion(!topic.isCompleted)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (topic.isCompleted) Icons.Default.Undo else Icons.Default.CheckCircle,
-                                contentDescription = null
-                            )
-                        }
-                    )
-
                     DropdownMenuItem(
                         text = { Text("Excluir Pasta", color = MaterialTheme.colorScheme.error) },
                         onClick = {

@@ -148,8 +148,7 @@ class CreateContestUseCase @Inject constructor(
                                 contestId = contestId,
                                 name = parsedDisc.name,
                                 weight = parsedDisc.weight ?: 10.0,
-                                totalTopics = topicsList.size,
-                                completedTopics = 0
+                                totalTopics = topicsList.size
                             )
                         )
                         
@@ -161,7 +160,6 @@ class CreateContestUseCase @Inject constructor(
                                     contestId = contestId,
                                     name = topicName.trim(),
                                     orderIndex = index,
-                                    isCompleted = false,
                                     createdAt = now
                                 )
                             }

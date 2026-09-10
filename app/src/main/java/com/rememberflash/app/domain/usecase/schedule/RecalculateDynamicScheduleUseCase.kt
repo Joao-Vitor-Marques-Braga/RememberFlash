@@ -81,11 +81,9 @@ class RecalculateDynamicScheduleUseCase @Inject constructor(
 
         val availableMinutesPerDay = (schedule.availableHoursPerDay * 60).toInt()
 
-        // Calcula peso ajustado: peso da disciplina × (1 - progresso%)
-        // Disciplinas com menor progresso e maior peso recebem mais tempo
+        // Calcula peso ajustado: peso da disciplina na prova
         val adjustedWeights = disciplines.map { discipline ->
-            val progressFactor = 1.0 - (discipline.progressPercentage / 100.0)
-            val adjustedWeight = discipline.weight * progressFactor.coerceAtLeast(0.1)
+            val adjustedWeight = discipline.weight.coerceAtLeast(0.1)
             discipline to adjustedWeight
         }
 

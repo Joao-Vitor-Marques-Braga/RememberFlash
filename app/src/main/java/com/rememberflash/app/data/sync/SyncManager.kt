@@ -284,7 +284,6 @@ class SyncManager @Inject constructor(
                         name = entity.name,
                         weight = entity.weight,
                         totalTopics = entity.totalTopics,
-                        completedTopics = entity.completedTopics,
                         isActive = entity.isActive
                     )
                 }
@@ -314,7 +313,6 @@ class SyncManager @Inject constructor(
                             name = entity.name,
                             weight = entity.weight,
                             totalTopics = entity.totalTopics,
-                            completedTopics = entity.completedTopics,
                             isActive = entity.isActive
                         )
                     }
@@ -343,7 +341,6 @@ class SyncManager @Inject constructor(
                                 contestId = entity.contestId,
                                 name = cleanName,
                                 description = cleanDesc,
-                                isCompleted = entity.isCompleted,
                                 orderIndex = entity.orderIndex,
                                 createdAt = entity.createdAt
                             )
@@ -380,7 +377,6 @@ class SyncManager @Inject constructor(
                             name = entity.name,
                             weight = entity.weight,
                             totalTopics = entity.totalTopics,
-                            completedTopics = entity.completedTopics,
                             isActive = entity.isActive
                         )
                     }
@@ -433,7 +429,6 @@ class SyncManager @Inject constructor(
                             name = entity.name,
                             weight = entity.weight,
                             totalTopics = entity.totalTopics,
-                            completedTopics = entity.completedTopics,
                             isActive = entity.isActive
                         )
                     }
@@ -584,7 +579,6 @@ class SyncManager @Inject constructor(
                                 name = dto.name,
                                 weight = dto.weight ?: 1.0,
                                 totalTopics = dto.totalTopics ?: 0,
-                                completedTopics = dto.completedTopics ?: 0,
                                 isActive = dto.isActive ?: true,
                                 isSynced = true
                             )
@@ -607,7 +601,6 @@ class SyncManager @Inject constructor(
                                     contestId = dto.contestId,
                                     name = dto.name,
                                     description = dto.description,
-                                    isCompleted = dto.isCompleted ?: false,
                                     orderIndex = dto.orderIndex ?: 0,
                                     createdAt = dto.createdAt ?: System.currentTimeMillis(),
                                     isSynced = true

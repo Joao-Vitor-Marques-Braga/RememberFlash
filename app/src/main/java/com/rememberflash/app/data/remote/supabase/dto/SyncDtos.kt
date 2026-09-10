@@ -40,7 +40,6 @@ data class DisciplineSupabaseDto(
     val name: String,
     val weight: Double? = 1.0,
     @SerialName("total_topics") val totalTopics: Int? = 0,
-    @SerialName("completed_topics") val completedTopics: Int? = 0,
     @SerialName("is_active") val isActive: Boolean? = true
 )
 
@@ -51,7 +50,6 @@ data class TopicSupabaseDto(
     @SerialName("contest_id") val contestId: Long,
     val name: String,
     val description: String? = null,
-    @SerialName("is_completed") val isCompleted: Boolean? = false,
     @SerialName("order_index") val orderIndex: Int? = 0,
     @SerialName("created_at") val createdAt: Long? = System.currentTimeMillis()
 )
