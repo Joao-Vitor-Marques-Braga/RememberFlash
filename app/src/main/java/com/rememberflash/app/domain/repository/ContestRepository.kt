@@ -10,6 +10,8 @@ interface ContestRepository {
     suspend fun softDelete(contestId: Long): Result<Unit>
     suspend fun delete(contestId: Long): Result<Unit>
     fun getActiveContestsByUser(userId: String): Flow<List<Contest>>
+    fun getArchivedContestsByUser(userId: String): Flow<List<Contest>>
+    suspend fun reactivate(contestId: Long): Result<Unit>
     suspend fun getById(contestId: Long): Result<Contest>
     fun getAllByUser(userId: String): Flow<List<Contest>>
 }

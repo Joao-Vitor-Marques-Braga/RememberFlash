@@ -1,12 +1,11 @@
 package com.rememberflash.app.presentation.topic
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.rememberflash.app.data.remote.gemini.GeminiClient
+import com.rememberflash.app.data.local.pdf.LocalPdfExtractor
 import com.rememberflash.app.data.sync.SyncManager
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Discipline
@@ -18,15 +17,17 @@ import com.rememberflash.app.domain.repository.FlashcardRepository
 import com.rememberflash.app.domain.repository.QuestionRepository
 import com.rememberflash.app.domain.repository.TopicRepository
 import com.rememberflash.app.domain.usecase.flashcard.CreateFlashcardUseCase
-import com.rememberflash.app.domain.usecase.flashcard.ExtractFlashcardsFromPdfUseCase
+import com.rememberflash.app.domain.usecase.flashcard.GenerateFlashcardsFromTextUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateQuestionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class TopicFolderUiState(
@@ -51,10 +52,10 @@ class TopicFolderViewModel @Inject constructor(
     private val flashcardRepository: FlashcardRepository,
     private val questionRepository: QuestionRepository,
     private val createFlashcardUseCase: CreateFlashcardUseCase,
-    private val extractFlashcardsFromPdfUseCase: ExtractFlashcardsFromPdfUseCase,
+    private val generateFlashcardsFromTextUseCase: GenerateFlashcardsFromTextUseCase,
     private val generateQuestionsUseCase: GenerateQuestionsUseCase,
-    private val geminiClient: GeminiClient,
     private val syncManager: SyncManager,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -65,8 +66,6 @@ class TopicFolderViewModel @Inject constructor(
     val uiState: StateFlow<TopicFolderUiState> = _uiState.asStateFlow()
 
     val isSyncing: StateFlow<Boolean> = syncManager.isSyncing
-
-    private val gson = Gson()
 
     init {
         loadData()
@@ -179,8 +178,6 @@ class TopicFolderViewModel @Inject constructor(
 
     fun generateFlashcardsFromPdf(quantity: Int) {
         val uri = _uiState.value.pdfUri
-        val name = _uiState.value.pdfName
-        val topicName = _uiState.value.topic?.name ?: ""
         if (uri == null) {
             _uiState.value = _uiState.value.copy(error = "Selecione um arquivo PDF primeiro")
             return
@@ -189,58 +186,43 @@ class TopicFolderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isGeneratingFlashcards = true, error = null)
 
-            if (name.lowercase().contains("scanned") || name.lowercase().contains("imagem") || name.lowercase().contains("vazio")) {
-                delay(1500)
+            val extractedText = withContext(Dispatchers.IO) {
+                LocalPdfExtractor.extractText(context, uri)
+            }
+
+            if (extractedText.isBlank() || extractedText.length < 50) {
                 _uiState.value = _uiState.value.copy(
                     isGeneratingFlashcards = false,
-                    error = "Não foi possível ler o texto deste PDF. Certifique-se de que o documento não seja apenas uma imagem escaneada."
+                    error = "O PDF selecionado não contém texto legível (documento escaneado). Envie um PDF com camada de texto"
                 )
                 return@launch
             }
 
-            try {
-                val cleanName = name.replace(".pdf", "").replace("_", " ").replace("-", " ")
-                val studyText = "Resumo analítico sobre o tópico $topicName da disciplina ${_uiState.value.discipline?.name ?: ""}. " +
-                        "Tema abordado: $cleanName. Regras, conceitos e questões fundamentais."
-
-                val jsonResponse = geminiClient.extractFlashcardsFromText(studyText)
-                val type = object : TypeToken<Map<String, List<RawFlashcard>>>() {}.type
-                val data: Map<String, List<RawFlashcard>> = gson.fromJson(jsonResponse, type)
-                val rawCards = data["flashcards"]
-
-                if (rawCards.isNullOrEmpty()) {
+            when (val saveResult = generateFlashcardsFromTextUseCase(
+                text = extractedText,
+                disciplineId = disciplineId,
+                quantity = quantity,
+                topicId = topicId
+            )) {
+                is Result.Success -> {
+                    syncManager.triggerSync()
                     _uiState.value = _uiState.value.copy(
                         isGeneratingFlashcards = false,
-                        error = "A criação automática demorou a responder. Tente novamente."
+                        pdfUri = null,
+                        pdfName = "",
+                        pdfSize = 0L,
+                        error = null
                     )
-                    return@launch
                 }
-
-                val cardsToSave = rawCards.take(quantity).map { Pair(it.frente, it.verso) }
-                when (val saveResult = extractFlashcardsFromPdfUseCase(disciplineId, cardsToSave, topicId = topicId)) {
-                    is Result.Success -> {
-                        syncManager.triggerSync()
-                        _uiState.value = _uiState.value.copy(
-                            isGeneratingFlashcards = false,
-                            pdfUri = null,
-                            pdfName = "",
-                            pdfSize = 0L,
-                            error = null
-                        )
-                    }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            isGeneratingFlashcards = false,
-                            error = saveResult.message
-                        )
-                    }
-                    else -> {}
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isGeneratingFlashcards = false,
+                        error = saveResult.message
+                    )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isGeneratingFlashcards = false,
-                    error = e.message ?: "Falha ao gerar flashcards via IA."
-                )
+                else -> {
+                    _uiState.value = _uiState.value.copy(isGeneratingFlashcards = false)
+                }
             }
         }
     }
@@ -299,9 +281,4 @@ class TopicFolderViewModel @Inject constructor(
             }
         }
     }
-
-    private data class RawFlashcard(
-        val frente: String,
-        val verso: String
-    )
 }

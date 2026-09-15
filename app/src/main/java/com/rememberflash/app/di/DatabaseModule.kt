@@ -65,4 +65,7 @@ object DatabaseModule {
 
     @Provides
     fun provideMockExamAttemptDao(database: RememberFlashDatabase): com.rememberflash.app.data.local.database.dao.MockExamAttemptDao = database.mockExamAttemptDao()
+
+    @Provides
+    fun provideUserDao(database: RememberFlashDatabase): com.rememberflash.app.data.local.database.dao.UserDao = database.userDao()
 }

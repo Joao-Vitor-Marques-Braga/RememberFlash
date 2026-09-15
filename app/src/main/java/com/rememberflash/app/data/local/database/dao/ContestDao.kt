@@ -28,6 +28,12 @@ interface ContestDao {
     @Query("SELECT * FROM contests WHERE user_id = :userId AND is_active = 1 ORDER BY updated_at DESC")
     fun getActiveByUser(userId: String): Flow<List<ContestEntity>>
 
+    @Query("SELECT * FROM contests WHERE user_id = :userId AND is_active = 0 ORDER BY updated_at DESC")
+    fun getArchivedByUser(userId: String): Flow<List<ContestEntity>>
+
+    @Query("UPDATE contests SET is_active = 1, updated_at = :updatedAt WHERE id = :contestId")
+    suspend fun reactivate(contestId: Long, updatedAt: Long = System.currentTimeMillis())
+
     @Query("SELECT * FROM contests WHERE user_id = :userId ORDER BY updated_at DESC")
     fun getAllByUser(userId: String): Flow<List<ContestEntity>>
 

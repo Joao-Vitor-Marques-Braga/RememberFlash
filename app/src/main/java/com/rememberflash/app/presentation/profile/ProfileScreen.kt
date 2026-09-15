@@ -9,6 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.presentation.theme.SuccessGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,10 +35,12 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showCurrentPassword by remember { mutableStateOf(false) }
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var contestToReactivate by remember { mutableStateOf<Contest?>(null) }
 
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
@@ -43,7 +48,15 @@ fun ProfileScreen(
         }
     }
 
+    LaunchedEffect(uiState.contestActionFeedback) {
+        uiState.contestActionFeedback?.let { feedback ->
+            snackbarHostState.showSnackbar(feedback)
+            viewModel.clearContestActionFeedback()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -115,6 +128,105 @@ fun ProfileScreen(
                             ProfileField(label = "Nome", value = uiState.user?.name ?: "N/A")
                             ProfileField(label = "E-mail", value = uiState.user?.email ?: "N/A")
                             ProfileField(label = "CPF", value = uiState.user?.cpf ?: "N/A")
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+
+                // Seção: Concursos Arquivados (RF003 / RN06)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Inventory2,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Concursos Arquivados",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                if (uiState.archivedContests.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = "Nenhum concurso arquivado no momento.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        uiState.archivedContests.forEach { contest ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = contest.title,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (contest.organizerName.isNotBlank() || contest.description.isNotBlank()) {
+                                            val subtitle = listOf(contest.organizerName, contest.description)
+                                                .filter { it.isNotBlank() }
+                                                .joinToString(" • ")
+                                            Text(
+                                                text = subtitle,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    val isReactivating = uiState.isReactivatingId == contest.id
+                                    OutlinedButton(
+                                        onClick = { contestToReactivate = contest },
+                                        enabled = !isReactivating,
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        if (isReactivating) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.Restore,
+                                                contentDescription = "Reativar",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Reativar", style = MaterialTheme.typography.labelMedium)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -308,6 +420,34 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    // Modal de Confirmação de Reativação (RNF02)
+    contestToReactivate?.let { contest ->
+        AlertDialog(
+            onDismissRequest = { contestToReactivate = null },
+            title = {
+                Text("Reativar Concurso", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Deseja restaurar o concurso '${contest.title}'? Ele e suas disciplinas voltarão a ser exibidos na tela inicial.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.reactivateContest(contest.id)
+                        contestToReactivate = null
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { contestToReactivate = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 

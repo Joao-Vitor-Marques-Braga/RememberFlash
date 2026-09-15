@@ -46,7 +46,7 @@ Requisito n°
 RF003
 Manter Concurso
 Descrição
-Permite ao usuário adicionar, editar e excluir "Pastas" principais e definir parâmetros globais para elas, como a Banca Examinadora e o Tipo de Questão desejada (Múltipla escolha ou Verdadeiro/Falso). Adicionalmente, possibilita que o usuário anexe o arquivo PDF do edital do certame, que servirá como base de dados para a IAG estruturar o conteúdo.
+Permite ao usuário adicionar, editar e excluir pastas principais denominadas "Concursos", parametrizando diretrizes globais da prova como Banca Examinadora, Cargo Pretendido, Tipo de Questão (Múltipla Escolha ou Certo/Errado) e orientações logísticas para o dia do exame (local de prova, cor de caneta permitida, itens autorizados e proibidos). Adicionalmente, possibilita o upload do documento PDF do edital para servir de base contextual de mineração e suporte para a IAG.
 Prioridade
 Essencial
 Dependências
@@ -62,7 +62,7 @@ Requisito n°
 RF004
 Manter Disciplina
 Descrição
-Permite ao estudante criar e excluir subcategorias ou disciplinas específicas dentro de uma pasta (ex: Interpretação de textos, Processos de construção textual) para organizar o material gerado.
+Permite ao estudante criar, estruturar e gerenciar disciplinas e seus respectivos tópicos temáticos dentro de uma pasta de concurso (ex: Língua Portuguesa -> Interpretação de Textos, Sintaxe), organizando o material em unidades modulares para direcionar as sessões contínuas de estudo e revisão ativa.
 Prioridade
 Essencial
 Dependências
@@ -170,7 +170,7 @@ Requisito n°
 RF010
 Visualizar Desempenho e Progresso
 Descrição
-Exibe um painel analítico com métricas detalhadas de desempenho, incluindo barras de progresso, quantidade total de questões respondidas e a relação exata de Acertos (com porcentagem) e Erros por disciplina e simulados.
+Exibe um painel analítico com métricas detalhadas de evolução nos estudos, incluindo o volume total de questões respondidas, a relação exata de Acertos (com porcentagem) e Erros por disciplina e simulados, além do tempo médio de resolução por questão para controle do ritmo de prova do concurseiro.
 Prioridade
 Essencial
 Dependências
@@ -243,7 +243,7 @@ Requisito n°
 RF014
 Interagir Tutoria Interativa
 Descrição
-Permite ao estudante solicitar explicações detalhadas sobre uma questão recém-respondida no simulado ou sobre o feedback recebido em uma redação. O sistema abre uma interface de chat contextual onde a IAG atua como um "tutor 1:1", sanando dúvidas específicas sobre o tema para garantir a compreensão do erro e o aprendizado ativo.
+Permite ao estudante solicitar explicações detalhadas em uma interface de chat onde a IAG atua sob a persona de um "tutor 1:1". A funcionalidade é contextualizada a partir de três origens: uma questão recém-respondida no simulado, o feedback recebido em uma redação, ou o documento do edital anexado à pasta do concurso ("Tutor do Edital"), sanando dúvidas pontuais sobre o conteúdo acadêmico ou sobre as regras e critérios do certame.
 Prioridade
 Importante
 Dependências
@@ -518,21 +518,20 @@ Fonte: O autor(2026).
 
 RF003 - Manter Concurso
 1. BREVE DESCRIÇÃO
-Permite ao estudante criar, visualizar, editar e excluir pastas estruturais denominadas "Concursos". Estas pastas centralizam as disciplinas, simulados e parâmetros globais (Banca Examinadora e Tipo de Questão) que irão direcionar o comportamento da Inteligência Artificial. Permite também o anexo do arquivo PDF do edital, que servirá de base contextual (RAG - Retrieval-Augmented Generation) para a API do Gemini gerar conteúdos precisos.
-
+Permite ao estudante criar, visualizar, editar e excluir pastas estruturais denominadas "Concursos". Estas pastas centralizam as disciplinas, simulados e parâmetros globais (Banca Examinadora, Cargo Pretendido e Tipo de Questão) que direcionam o comportamento cognitivo da Inteligência Artificial. Permite também o anexo do edital em PDF (RAG - Retrieval-Augmented Generation) e o registro das diretrizes práticas de logística para o dia da prova (cor da caneta, itens autorizados/proibidos e local do exame), reunindo as informações críticas do certame em um card de consulta rápida para mitigar a ansiedade do candidato.
 2. ATORES
 Estudante (Concurseiro) - Ator Principal
 3. FLUXO DE EVENTOS
 3.1. FLUXO BÁSICO (Criar Novo Concurso)
 Na tela principal, o usuário aciona o Botão de submit "Novo Concurso".
 O sistema apresenta a tela de formulário "Configurar Edital/Concurso".
-O usuário preenche o Título da Pasta e seleciona a Banca Examinadora e o Tipo de Questão.
-O usuário toca na opção "Anexar Edital (PDF)".
-O sistema abre o seletor nativo de arquivos do Android.
+O usuário preenche os campos estruturais obrigatórios: Título do Concurso, Banca Examinadora e Cargo Pretendido.
+O usuário seleciona o Tipo de Questão predominante (Múltipla Escolha ou Certo/Errado).
+Opcionalmente, o usuário aciona "Adicionar Editais / Anexos (PDF)", abrindo o seletor nativo de arquivos do Android para anexar o documento do certame (até 15MB).
+O usuário faz o parâmetro da Inteligência artificial daquele concurso em específico, definindo: Dificuldade das Questões (“Fácil”, “Médio” ou “Difícil”), Rigor de Correção da Redação (“Flexível”, “Padrão” ou “Rigoroso”) e o Tom da Tutoria e Feedback (“Explicativo”, “Direto” ou “Descontraido”)
 O usuário confirma a criação tocando no botão "Salvar Concurso".
-O sistema exibe um indicador de carregamento enquanto a ViewModel empacota os dados e envia (junto com o arquivo binário) para o back-end.
-O back-end salva as informações no banco de dados, armazena o arquivo em nuvem e retorna o ID do concurso gerado.
-O sistema exibe a mensagem "Concurso cadastrado com sucesso!", atualiza e encerra o caso de uso.
+A ViewModel valida os dados, persiste as informações na base local e dispara a sincronização com a nuvem em segundo plano.
+O sistema exibe a mensagem "Concurso cadastrado com sucesso!" e redireciona o usuário para a tela principal do Concurso.
 Quadro 20 - Detalhamento de Campos (Tela de Criação de Concurso)
 Campo
 Valor default
@@ -549,6 +548,11 @@ Branco
 Texto
 Campo de texto editável
 Sim
+Cargo Pretendido
+Branco
+Texto
+Campo de texto editável
+Sim
 Tipo de Questão
 Múltipla escolha
 Múltipla Escolha, Certo/Errado
@@ -559,6 +563,15 @@ Nenhum Arquivo
 Formato .pdf
 Botão de Upload / File Picker
 Não
+Parâmetros da Inteligência Artificial
+
+
+
+
+
+
+
+
 Salvar Concurso
 
 
@@ -583,14 +596,21 @@ O usuário seleciona um arquivo com extensão diferente de .pdf (ex: um .docx ou
 O sistema (através da validação da ViewModel) detecta a violação antes de consumir.
 O sistema recusa o anexo e exibe uma mensagem de erro em vermelho sob o botão: "Formato inválido ou arquivo muito grande. Selecione um PDF de até 10MB."
 O campo "Anexo do Edital" retorna ao estado "Nenhum arquivo".
-A3 – Exclusão da Pasta (Exclusão em Cascata)
+A3 - Adição ou exclusão de Anexos
+Na tela de formulário (criação ou edição do concurso), o usuário aciona o botão de anexar documentos.
+2.O sistema invoca o seletor nativo de arquivos do Android (Storage Access Framework).
+O usuário seleciona um novo documento no formato PDF (ex: edital de abertura ou edital retificado) ou aciona o ícone de lixeira para remover o anexo existente.
+O sistema valida se o formato é estritamente .pdf e se o tamanho não excede o teto estipulado de 15MB.
+Caso o anexo seja válido, o sistema renderiza uma prévia com o nome e tamanho do arquivo selecionado; caso seja removido, o campo retorna ao estado "Nenhum arquivo anexado".
+Ao salvar o concurso, o sistema persiste o caminho/URI do arquivo na base de dados para alimentar a extração de conteúdo programático e a tutoria do edital via RAG.
+A4 – Exclusão da Pasta (Exclusão em Cascata)
 Na tela inicial, o usuário acessa as opções secundárias de um Concurso e seleciona "Excluir".
 O sistema exibe um modal crítico de confirmação: "Tem certeza? Excluir este concurso apagará permanentemente todas as disciplinas, flashcards e desempenhos vinculados a ele."
 O usuário confirma a exclusão.
 O sistema dispara a requisição de exclusão (DELETE) para o back-end.
 O banco de dados aplica a regra ON DELETE CASCADE, varrendo e excluindo todas as entidades secundárias atreladas ao ID deste concurso.
 O sistema exibe "Concurso excluído" e atualiza a tela.
-A4 – Reativação de Concurso Arquivado
+A5 – Reativação de Concurso Arquivado
 O usuário acessa a área de "Concursos Arquivados" através das configurações do perfil.
 O sistema lista as pastas de Concursos que possuem o status de inativas.
 O usuário aciona a opção "Reativar" no concurso desejado.
@@ -615,7 +635,7 @@ Fonte: O autor(2026).
 
 RF004 - Manter Disciplina
 1. BREVE DESCRIÇÃO
-Permite ao estudante criar, visualizar, editar e excluir subcategorias (Disciplinas) dentro de uma pasta estrutural (Concurso) previamente criada. Estas disciplinas funcionam como gavetas organizacionais onde os flashcards, questões geradas por IA e o desempenho do aluno serão armazenados de forma isolada.
+Permite ao estudante criar, visualizar, editar e excluir subcategorias principais (Disciplinas) dentro de uma pasta de Concurso previamente criada. As disciplinas funcionam como módulos organizacionais primários. Dentro de cada disciplina, o sistema possibilita também a estruturação de tópicos temáticos de estudo, garantindo que flashcards, questões geradas por IA e os históricos de desempenho fiquem devidamente isolados e organizados para ciclos contínuos de revisão.
 2. ATORES
 Estudante (Concurseiro) - Ator Principal
 3. FLUXO DE EVENTOS
@@ -674,12 +694,19 @@ O sistema exibe um alerta de segurança: "Tem certeza? Todos os flashcards, ques
 O usuário confirma a exclusão.
 O sistema envia a requisição de exclusão (DELETE) para o back-end.
 O banco de dados apaga a disciplina e os dados atrelados a ela, mas mantém o Concurso Pai intacto.
+A4 – Gestão de Tópicos Temáticos da Disciplina
+Na tela do Concurso, o usuário toca em uma disciplina existente para acessar seu ambiente interno de conteúdo.
+O sistema exibe os tópicos programáticos já cadastrados para aquela matéria.
+O usuário aciona a opção de adicionar tópico, informando o nome do assunto específico (ex: "Sintaxe de Concordância").
+A ViewModel valida os dados e vincula o novo tópico ao ID da Disciplina correspondente.
+O sistema atualiza a lista de tópicos da disciplina, permitindo que flashcards e questões sejam organizados pontualmente por assunto para revisões direcionadas.
 
 4. PRÉ-CONDIÇÕES
 O usuário deve estar autenticado.
 O usuário precisa ter ao menos um Concurso cadastrado, pois a Disciplina é uma entidade "filha" e exige o ID do Concurso para existir no banco de dados relacional.
+O usuário precisa ter previamente cadastrado e selecionado pelo menos uma disciplina, uma vez que o Tópico é uma entidade subordinada que exige a chave estrangeira da disciplina para sua persistência.
 5. PÓS-CONDIÇÕES
-A disciplina é persistida no banco de dados. A partir desse momento, ela passa a aparecer como uma opção válida nos filtros de geração de Questões, criação de Flashcards e estruturação do Cronograma Dinâmico.
+A disciplina (e seus eventuais tópicos internos) é persistida no banco de dados relacional. A partir deste momento, ela fica disponível como filtro e base para geração de Questões por IA, criação de Flashcards e estruturação do Cronograma Dinâmico de estudos.
 6. PONTOS DE EXTENSÃO
 Não se aplica.
 7. PROTÓTIPO
@@ -769,12 +796,12 @@ Valor default
 Domínio de valores
 Tipo de campo na tela
 Obrigatoriedade
-Título
+Frente do Cartão (Pergunta/Gatilho)
 Branco
 Texto
 Campo de texto editável
 Sim
-Descrição
+Verso do Cartão (Resposta/Explicação)
 Branco
 Texto
 Campo de texto editável
@@ -895,6 +922,7 @@ O sistema não grava nenhum dado fragmentado no banco.
 O usuário deve estar autenticado e com conexão estável à internet.
 O usuário deve ter concedido permissão de leitura de arquivos ao aplicativo.
 O arquivo PDF deve conter texto "copiável" (searchable text), não apenas imagens rasterizadas.
+A Chave de API pessoal (BYOK) do Gemini deve estar previamente configurada e válida nas configurações do aplicativo.
 5. PÓS-CONDIÇÕES
 Um lote de novos flashcards estruturados com Título e Descrição é gerado e salvo na base de dados, estando imediatamente disponível para as sessões de revisão ativa do aluno.
 6. PONTOS DE EXTENSÃO
@@ -908,23 +936,25 @@ FIGURA 13 - Tela para criar novo flashcard manual
 Fonte: O autor(2026).
 RF008 - Manter Questões via Inteligência Artificial
 1. BREVE DESCRIÇÃO
-Permite ao estudante gerar processualmente lotes de questões para treino. O sistema atua como um orquestrador cognitivo: ele captura o contexto do usuário (Banca Examinadora do Concurso, Nível de Dificuldade nas Preferências e a Disciplina atual), empacota essas diretrizes em um prompt estruturado no código-fonte (oculto ao usuário) e requisita à API do Google Gemini a criação de um JSON contendo o enunciado, as alternativas, a resposta correta e a justificativa instrucional para cada questão gerada.
+Permite ao estudante gerar processualmente lotes de questões para treino prático. O sistema atua como um orquestrador cognitivo: ele captura o contexto do usuário (Banca Examinadora do Concurso, Nível de Dificuldade definido nas Preferências e a Disciplina ou Tópico atual), empacota essas diretrizes em um prompt estruturado no código-fonte (oculto ao usuário) e requisita à API do Google Gemini a criação de um JSON padronizado contendo enunciado, alternativas, resposta correta e a justificativa instrucional comentada para cada item gerado.
 2. ATORES
 Estudante (Concurseiro) - Ator Principal
 API Google Gemini (Sistema Externo)
 3. FLUXO DE EVENTOS
-3.1. FLUXO BÁSICO (Gerar Lote de Questões)
-Na tela de uma "Disciplina", o usuário aciona a opção "Gerar Questões".
-O sistema exibe o formulário de parametrização do lote.
-O usuário seleciona a quantidade de questões desejada e, opcionalmente, digita um tema específico.
-A ViewModel executa a Engenharia de Prompt, concatenando:
-Regra da Banca e Tipo de Questão (Múltipla Escolha ou Certo/Errado).
-Nível de Dificuldade e Rigor.
-Tema solicitado (se houver) e o formato obrigatório de saída (JSON).
-A requisição HTTP é disparada para a API do Google Gemini.
-A API processa a solicitação e retorna uma matriz de objetos JSON com as questões.
-O sistema desserializa o JSON, valida a integridade dos dados e salva o lote de questões no banco de dados atrelado à Disciplina.
-O sistema encerra o carregamento, exibe a mensagem "Lote de [X] questões gerado com sucesso!" e direciona o usuário imediatamente para a tela de Resolução (Simulado).
+3.1. FLUXO BÁSICO (Gerar Lote de Questões e Iniciar Resolução)
+Na tela de uma "Disciplina" (ou dentro de um tópico temático), o usuário aciona a opção "Gerar Questões".
+O sistema exibe o formulário modal de parametrização do lote.
+O usuário seleciona a quantidade de questões desejada (5, 10, 15 ou 20) e, opcionalmente, digita um tema ou assunto específico da matéria.
+O usuário toca no botão "Gerar Questões".
+O sistema exibe o indicador de carregamento e a ViewModel executa a Engenharia de Prompt, concatenando:
+Regra da Banca Examinadora e Tipo de Questão (Múltipla Escolha com 5 alternativas ou Certo/Errado), herdados do Concurso pai;
+Nível de Dificuldade parametrizado nas configurações da IAG;
+Disciplina ativa e Tema solicitado (se informado);
+ Contrato estrito de saída em formato JSON estruturado.
+ A requisição HTTP é disparada para a API do Google Gemini.
+A API processa a solicitação e retorna uma matriz de objetos JSON com as questões formuladas.
+O sistema desserializa o JSON, valida a integridade de todos os campos obrigatórios e persiste o lote de questões no banco de dados local vinculado à Disciplina.
+O sistema encerra o carregamento, exibe a notificação "Lote de [X] questões gerado com sucesso!" e direciona o usuário imediatamente para a tela de Resolução (Simulado), iniciando a cronometragem contínua de tempo por questão.
 Quadro 25 - Detalhamento de Campos (Tela de Geração de Questões)
 Campo
 Valor default
@@ -948,33 +978,45 @@ Gerar Questões
 
 Botão de submit
 Sim
+Cancelar
+
+
+
+
+Botão de link
+Não
 
 Fonte: O autor(2026).
 
 
 3.2. FLUXOS ALTERNATIVOS
 A1 – Quebra de Contrato JSON (Falha de Formatação da IA)
-A LLM sofre uma "alucinação" e retorna a resposta em texto plano ou com a estrutura JSON corrompida.
-A ViewModel intercepta o erro durante a desserialização nativa.
-O sistema aborta o salvamento para evitar dados corrompidos no banco.
-O sistema exibe a mensagem: "Não foi possível estruturar as questões corretamente. Por favor, tente novamente."
-O usuário retorna à tela para nova tentativa.
+O modelo de linguagem sofre uma instabilidade temporária e retorna a resposta em texto não estruturado ou com chaves JSON corrompidas.
+A ViewModel intercepta a falha durante a tentativa de desserialização nativa.
+O sistema aborta a gravação para preservar a consistência do banco de dados.
+O sistema oculta o loading e exibe a mensagem amigável: "Não foi possível estruturar as questões corretamente. Por favor, tente novamente."
+O usuário retorna ao formulário com os parâmetros preenchidos para nova tentativa.
 A2 – Bloqueio por Filtro de Segurança (Safety Settings)
-O tema solicitado pelo usuário envolve termos sensíveis que a LLM não possui acesso.
-O Google Gemini recusa a geração e retorna um código de bloqueio de segurança.
-O sistema intercepta a recusa da API.
-O sistema encerra o carregamento e exibe um Dialog de aviso: "O tema solicitado foi bloqueado pelas políticas de segurança da IA do Google."
-A3 – Timeout da API
-A conexão com a API do Gemini demora mais do que o tempo estipulado.
-O sistema cancela a requisição para não travar o dispositivo.
+O tema digitado pelo usuário contém termos sensíveis ou incompatíveis com as diretrizes da API.
+A requisição é recusada ou bloqueada pelos filtros de segurança (Safety Settings) da API do Google Gemini.
+O sistema intercepta o código de recusa.
+O sistema encerra o carregamento e exibe um alerta modal orientativo: "O tema solicitado foi bloqueado pelas políticas de segurança da IA do Google. Tente refinar a busca com termos acadêmicos."
+O usuário ajusta o tema e tenta novamente.
+A3 – Falha de Conexão ou Timeout da API
+A comunicação com a API do Gemini sofre perda de conectividade ou excede o tempo limite de resposta.
+ O sistema cancela a requisição para não travar a interface do dispositivo.
+O sistema exibe a notificação: "A criação automática demorou a responder ou o serviço está temporariamente indisponível. Verifique sua conexão e tente novamente."
+Nenhum dado parcial ou inconsistente é registrado no banco de dados.
 4. PRÉ-CONDIÇÕES
 O usuário deve estar logado.
-O usuário deve possuir uma Pasta de Concurso configurada com a respectiva Banca Examinadora.
+O usuário deve possuir uma Pasta de Concurso configurada com a respectiva Banca Examinadora e Tipo de Questão.
+A Chave de API pessoal (BYOK) do Gemini deve estar previamente configurada e válida nas configurações do aplicativo.
 5. PÓS-CONDIÇÕES
-O banco de dados passa a contar com novas instâncias da entidade Questão, permitindo que o aluno inicie a resolução.
+O banco de dados relacional é populado com novas instâncias da entidade Questão associadas à Disciplina. O simulado fica imediatamente disponível para resposta, com medição de tempo individual ativada e histórico preparado para registro da tentativa.
 6. PONTOS DE EXTENSÃO
-Após gerar o lote, o usuário resolve as questões, gerando métricas de acertos e erros que acionam a Visualização de Desempenho.
-Se, ao resolver uma questão, o aluno não entender a "justificativa" gerada, o sistema aciona o ponto de extensão para o Tutor Interativo.
+Ao concluir a resolução do lote, as métricas de acertos, erros e o tempo médio de resolução por questão são consolidados e atualizam o painel analítico do estudante.
+Na tela de correção de qualquer questão resolvida, o estudante pode acionar o botão "Dúvidas? Pergunte ao Tutor" para abrir a sessão de chat contextual sobre o motivo do erro ou aprofundamento da justificativa técnica.
+Caso o percentual de acertos nas questões resolvidas de uma matéria seja inferior a 70%, o sistema aciona automaticamente a proposta de recalibração de tempo diário no cronograma de estudos.
 7. PROTÓTIPO
 FIGURA 14 - Tela de geração de questões
 
@@ -1042,6 +1084,7 @@ Conexão ativa com a internet para requisição ao Gemini.
 Uma entidade de "Prova" é criada no banco de dados, contendo a lista completa de questões divididas por disciplinas, prontas para serem respondidas no ambiente de avaliação do aplicativo.
 6. PONTOS DE EXTENSÃO
 Após a finalização da resolução da prova, o sistema aciona o caso de uso de Visualizar Desempenho com o aproveitamento do aluno.
+Caso o percentual de acertos nas questões resolvidas de uma matéria seja inferior a 70%, o sistema aciona automaticamente a proposta de recalibração de tempo diário no cronograma de estudos.
 7. PROTÓTIPO
 FIGURA 15 - Tela de geração de prova via IAG
 
@@ -1053,19 +1096,20 @@ Fonte: O autor(2026).
 
 RF010 - Visualizar Desempenho e Progresso
 1. BREVE DESCRIÇÃO
-Permite ao estudante acompanhar a sua evolução de aprendizado através de um painel analítico interativo. O sistema compila o histórico de resoluções de questões avulsas e provas, geradas previamente pela IAG, e exibe métricas detalhadas, incluindo barras de progresso, volume total de questões respondidas e a taxa exata de Acertos e Erros, em percentual e números absolutos, filtrados por disciplina ou por provas realizadas.
+Permite ao estudante acompanhar a sua evolução de aprendizado através de um painel analítico interativo. O sistema compila o histórico de resoluções de questões avulsas e provas simuladas, geradas previamente pela IAG, e exibe métricas detalhadas, incluindo barras de progresso, volume total de questões respondidas, taxa exata de Acertos e Erros (em percentual e números absolutos) e a média do tempo de resolução despendido por questão (em minutos e segundos), filtrados por período temporal ou segmentados por disciplina.
 2. ATORES
 Estudante - Ator Principal
 3. FLUXO DE EVENTOS
 3.1. FLUXO BÁSICO (Visualizar Painel de Métricas)
 No menu de navegação inferior do aplicativo, o usuário seleciona a aba "Desempenho".
-O sistema roda em segundo plano uma rotina para sincronizar os dados locais com o back-end, garantindo que o painel exiba as informações mais recentes.
+O sistema executa em segundo plano a leitura do histórico de resoluções e tentativas de simulados armazenadas.
 A ViewModel realiza o cálculo estatístico das métricas:
-Soma do total de questões respondidas.
-Cálculo percentual de Acertos vs. Erros geral.
-Agrupamento de acertos e erros segmentados por Disciplina e por Prova.
-O usuário interage com os filtros de tempo (ex: "Últimos 7 dias", "Mês Atual", "Geral") ou seleciona uma disciplina específica para detalhar os dados.
-O sistema atualiza os gráficos instantaneamente com base nos filtros selecionados.
+Contagem do volume total de questões respondidas no escopo filtrado.
+Cálculo da taxa percentual e absoluta de Acertos vs. Erros global.
+Cálculo da média aritmética do tempo de resposta por questão (extraído das durações individuais cronometradas em cada resolução).
+Agrupamento de acertos, erros e rendimento segmentados por cada Disciplina cadastrada.
+O usuário interage com os filtros de tempo ("7 dias", "30 dias" ou "Visão Geral") ou seleciona uma disciplina específica no menu suspenso para detalhamento analítico.
+O sistema recalcula e atualiza instantaneamente os cards de resumo geral, o card de tempo médio de prova e as barras de progresso por matéria.
 Quadro 27 - Detalhamento de Filtros e Elementos Visuais (Painel de Desempenho)
 Campo
 Valor default
@@ -1087,6 +1131,11 @@ Rendimento Global
 0 a 100% 
 Componente Visual
 Sim
+Tempo Médio por Questão
+0s
+Tempo em mm:ss por item
+Card Analítico com Cronômetro
+Sim
 Desempenho por Matéria
 0/0
 Barras de progresso com %
@@ -1098,20 +1147,20 @@ Fonte: O autor(2026).
 
 3.2. FLUXOS ALTERNATIVOS
 A1 – Ausência de Dados (Estado Vazio / Empty State)
-O sistema identifica que o usuário recém-criou a conta e não possui nenhum histórico de questões respondidas.
-O sistema não renderiza gráficos com valor "zero".
-Em vez dos gráficos, o sistema exibe uma ilustração (Empty State) e a mensagem: "Você ainda não respondeu nenhuma questão.".
-O sistema exibe um botão de atalho primário direcionando o usuário para a tela de concursos.
+O sistema identifica que o usuário recém-criou a conta e ainda não respondeu a nenhuma questão ou simulado.
+O sistema oculta a renderização de gráficos e cards com valores zerados.
+Em substituição aos gráficos, o sistema exibe uma ilustração orientativa (Empty State) acompanhada da mensagem: "Você ainda não respondeu nenhuma questão. Realize seu primeiro treino para desbloquear suas métricas!".
+O sistema exibe um botão de atalho primário direcionando o estudante diretamente para a tela de Concursos.
 A2 – Modo Offline (Sem conexão com o Back-end)
-O dispositivo não consegue se conectar à internet para checar atualizações com o back-end.
-O sistema não interrompe a exibição da tela. Ele utiliza os dados cacheados na última sessão do banco de dados local.
-O sistema exibe um pequeno aviso no topo da tela (ex: ícone de nuvem cortada): "Exibindo dados armazenados offline. Conecte-se à internet para sincronizar."
+O dispositivo encontra-se sem conexão ativa à internet para sincronização com a nuvem.
+O sistema não interrompe a exibição do painel, calculando os dados com base nas resoluções já persistidas no banco de dados local do dispositivo.
+O sistema exibe um banner informativo não-intrusivo no topo da tela (ícone de nuvem offline): "Exibindo dados armazenados offline. Conecte-se à internet para sincronizar com a nuvem."
 O usuário consegue visualizar os gráficos normalmente com base nos dados locais.
 4. PRÉ-CONDIÇÕES
 O usuário deve estar autenticado no sistema.
-É altamente recomendável que o usuário já tenha respondido a Questões ou finalizado uma Prova para que os gráficos tenham insumos para exibição.
+É necessário que o estudante já tenha resolvido ao menos uma questão ou simulado para que as métricas de aproveitamento e o tempo de resposta sejam gerados.
 5. PÓS-CONDIÇÕES
-O usuário adquire consciência de suas fraquezas e fortalezas acadêmicas. Os dados agregados nesta tela também servem de insumo algorítmico interno para a IAG, que poderá utilizá-los no futuro para criar cronogramas dinâmicos mais precisos focados nas matérias com menor rendimento.
+O estudante obtém clareza analítica sobre suas fraquezas e fortalezas temáticas, bem como sobre sua agilidade e gestão de tempo sob pressão de prova. Os dados consolidados de baixo rendimento também atuam como gatilho inteligente para subsidiar o recálculo do Cronograma Dinâmico de estudos.
 6. PONTOS DE EXTENSÃO
 Não se aplica.
 7. PROTÓTIPO
@@ -1371,21 +1420,26 @@ Fonte: O autor(2026).
 
 RF014 - Interagir Tutoria Interativa
 1. BREVE DESCRIÇÃO
-Permite ao estudante iniciar uma sessão de chat contextual com a IAG atuando sob a persona de um tutor particular (1:1). Esta funcionalidade é acionada a partir da tela de correção de uma questão ou do feedback de uma redação. O sistema injeta automaticamente o contexto do erro no prompt, permitindo que o aluno faça perguntas abertas (ex: "Por que a alternativa C está errada?") e receba explicações didáticas e focadas, garantindo a aprendizagem ativa e a mitigação de dúvidas pontuais.
+Permite ao estudante iniciar uma sessão de chat contextual com a IAG atuando sob a persona de um tutor particular (1:1). Esta funcionalidade pode ser acionada a partir de três pontos de entrada: Tela de correção de uma questão; Tela de feedback de uma redação; ou Pasta de um concurso com documento em PDF anexado. O sistema injeta silenciosamente o contexto correspondente no prompt da IAG, permitindo que o aluno faça perguntas abertas (ex: "Por que a alternativa C está errada?", "O que faltou na minha conclusão?" ou "Como a banca avaliará a prova discursiva neste edital?") e receba explicações didáticas, focadas e alinhadas ao tom previamente parametrizado, desde que esteja alimentado com o contexto necessário.
 2. ATORES
 Estudante (Concurseiro) - Ator Principal
 IAG (Sistema Externo)
 3. FLUXO DE EVENTOS
 3.1. FLUXO BÁSICO (Esclarecer Dúvida Contextual)
-O usuário visualiza a correção de uma questão recém-respondida ou o feedback de uma redação.
-O usuário aciona o Botão de submit "Dúvidas? Pergunte ao Tutor".
-O sistema abre uma interface de chat interativo.
-Em background, a ViewModel carrega o "Contexto Ativo", o enunciado da questão, a alternativa que o aluno marcou, a resposta correta e a justificativa técnica, para injetar silenciosamente na próxima requisição.
-O usuário digita a sua dúvida no campo de texto e toca no ícone de "Enviar".
-O sistema exibe o balão de mensagem do usuário e um indicador de digitação para a IAG.
-O sistema empacota o Contexto Ativo, a mensagem do aluno e o Tom do Tutor em um prompt estruturado e dispara a requisição para a IAG.
-A IAG processa a requisição e retorna uma explicação didática focada na dúvida do aluno.
-O sistema renderiza o balão de resposta da IAG na interface de chat.
+O usuário aciona o botão de tutoria a partir de um dos três contextos suportados:
+Na correção de uma questão: toca em "Dúvidas? Pergunte ao Tutor";
+No resultado de uma redação: toca em "Tirar Dúvidas com o Tutor";
+Na tela do concurso: toca em "Tirar Dúvidas do Edital (Tutor IA)".
+O sistema abre a interface de chat interativo.
+Em background, a ViewModel carrega e estrutura o "Contexto Ativo" correspondente:
+Contexto de Questão: enunciado, opções, alternativa marcada pelo aluno, gabarito oficial e justificativa técnica;
+Contexto de Redação: tema proposto, texto submetido pelo estudante, nota obtida por competências e feedback analítico da IA;
+Contexto de Edital: título do concurso, banca examinadora e o conteúdo textual extraído do arquivo PDF do edital.
+O usuário digita sua dúvida no campo de texto e aciona o botão "Enviar".
+O sistema renderiza o balão de mensagem do estudante e exibe o indicador visual de processamento/digitação da IAG.
+A ViewModel empacota o Contexto Ativo, a pergunta do aluno, o histórico recente da sessão e as diretrizes do Tom do Tutor em um prompt instrucional estruturado, disparando a requisição para a IAG.
+7. A IAG processa a solicitação mantendo a persona de tutor pedagógico e retorna a explicação focada na dúvida.
+O sistema oculta o indicador de carregamento e renderiza a resposta da IAG na interface de chat.
 Quadro 29 - Detalhamento de Campos (Interface de Tutoria Interativa)
 Campo
 Valor default
@@ -1413,10 +1467,9 @@ Não
 
 Fonte: O autor(2026).
 
-
 3.2. FLUXOS ALTERNATIVOS
 A1 – Fuga de Escopo (Context Boundary Violation)
-O usuário digita uma pergunta totalmente desconexa do contexto educacional.
+O usuário digita uma pergunta totalmente desconexa do contexto educacional ou as regras do certame.
 O sistema envia a mensagem para a IAG.
 A IAG, instruída pelo prompt limitador configurado na arquitetura do aplicativo, recusa-se a mudar de assunto.
 A IAG retorna uma resposta padronizada de redirecionamento "Como seu tutor de estudos, meu foco é ajudar você com o concurso. Vamos voltar à dúvida sobre o conteúdo“.
@@ -1426,9 +1479,14 @@ A requisição para a IAG sofre falha de conexão, instabilidade no servidor da 
 O sistema intercepta o erro e remove o indicador de digitação.
 O sistema exibe um alerta não-intrusivo: "Seu tutor virtual está indisponível no momento devido a falhas na rede. Tente enviar a mensagem novamente em alguns segundos."
 O texto digitado pelo aluno permanece no campo de entrada para que ele não perca o que escreveu.
+A3 - Edital sem Conteúdo Extraível
+Ao tentar acionar o "Tutor do Edital", o sistema detecta que o concurso não possui arquivo PDF anexado ou que o documento não contém texto passível de leitura.
+O sistema impede a abertura do chat de edital.
+O sistema exibe um alerta orientando o estudante a anexar um edital válido no formato PDF com texto selecionável para habilitar o tutor.
 4. PRÉ-CONDIÇÕES
 O usuário deve possuir conexão ativa com a internet.
-A sessão de tutoria deve obrigatoriamente ser instanciada a partir de uma entidade educacional preexistente, uma Questão ou uma Redação, para que a IAG tenha um contexto base.
+A Chave de API pessoal (BYOK) do Gemini deve estar configurada nas preferências do aplicativo.
+A sessão de tutoria deve ser obrigatoriamente instanciada a partir de uma entidade contextual existente: uma Questão já respondida, uma Redação avaliada ou um Concurso que possua edital em PDF anexado.
 5. PÓS-CONDIÇÕES
 A dúvida do estudante é sanada, reforçando a memorização do conteúdo. Por motivos de privacidade, a sessão de chat é puramente stateless (sem estado), sendo o histórico da interação mantido apenas em memória temporária durante a execução da tela e completamente destruído após o encerramento da tutoria, sem sofrer qualquer tipo de persistência local ou em nuvem.
 6. PONTOS DE EXTENSÃO
@@ -1437,3 +1495,17 @@ Não se aplica.
 FIGURA 22 - Tela de tutor
 
 Fonte: O autor(2026).
+
+
+2.8. REQUISITOS NÃO FUNCIONAIS
+
+RNF01 - O sistema deve exibir indicadores de progresso sempre que uma requisição for enviada ao back-end, ao módulo de OCR ou durante a geração de conteúdo pela IAG.
+RNF02 - Ações destrutivas (ex: exclusão de um Concurso, exclusão de Histórico de Redações ou de sua própria conta) devem obrigatoriamente exigir uma etapa de confirmação (Dialog duplo) para mitigar erros acidentais.
+A proporção de exclusões acidentais reportadas deve ser nula, assegurada pela fricção intencional colocada nas ações de exclusão.
+RNF03 - O sistema deve apresentar uma interface fluida e de fácil assimilação, garantindo uma curva de aprendizado baixa para que a utilização das funcionalidades principais (como cadastro, anexação de editais e geração de conteúdos via IAG) não requeira a leitura de manuais ou suporte a tutoriais extensos. Para isso, o design de interface deve empregar metáforas visuais familiares ao cotidiano do estudante, tais como ícones de "Pastas" para a organização de concursos, "Cartões" físicos para a exibição de flashcards e "Calendários" para o planejamento do cronograma dinâmico. 
+Um usuário iniciante, sem treinamento prévio, deve ser capaz de gerar a sua primeira prova com o auxílio da IAG em menos de 10 minutos após a conclusão do seu cadastro no sistema.
+RNF04 -  Os elementos interativos da tela (botões, imagens extraídas do OCR e gráficos de desempenho) devem conter descrições curtas e atributos de semântica configurados para que leitores de tela nativos consigam verbalizar as ações para deficientes visuais.
+RNF05 - Os dados sensíveis, como tokens de sessão de usuário e credenciais, devem ser obrigatoriamente salvos no dispositivo móvel de forma criptografada. O aplicativo deverá utilizar algoritmos e mecanismos nativos de segurança recomendados pelo sistema operacional para garantir o sigilo e a proteção das informações contra acessos não autorizados.
+RNF06 - As dúvidas dos usuários com o tutor não devem ser salvas para garantir sigilo total das dúvidas e informações.
+RNF07 - O sistema deve manter no servidor um registro histórico (log) contendo o timestamp (data e hora) e a origem das requisições enviadas ao módulo de Inteligência Artificial, permitindo a auditoria de consumo de recursos e a investigação de possíveis abusos da ferramenta.
+RNF08 -O aplicativo deve possuir uma arquitetura de banco de dados local (no próprio dispositivo móvel) que viabilize o acesso, e a utilização de qualquer função que não utilize IAG mesmo quando o smartphone estiver sem conexão com a internet. O sistema deverá sincronizar esses novos dados com o servidor de forma invisível assim que a conexão for restabelecida.

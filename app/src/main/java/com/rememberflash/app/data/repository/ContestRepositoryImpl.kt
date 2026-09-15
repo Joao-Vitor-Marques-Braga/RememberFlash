@@ -7,6 +7,7 @@ import com.rememberflash.app.data.local.database.dao.FlashcardDao
 import com.rememberflash.app.data.local.database.dao.QuestionDao
 import com.rememberflash.app.data.mapper.toDomain
 import com.rememberflash.app.data.mapper.toEntity
+import com.rememberflash.app.data.sync.SyncManager
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.repository.ContestRepository
@@ -22,7 +23,8 @@ class ContestRepositoryImpl @Inject constructor(
     private val disciplineDao: DisciplineDao,
     private val topicDao: TopicDao,
     private val flashcardDao: FlashcardDao,
-    private val questionDao: QuestionDao
+    private val questionDao: QuestionDao,
+    private val syncManager: SyncManager
 ) : ContestRepository {
 
     override suspend fun insert(contest: Contest): Result<Long> {
@@ -46,9 +48,20 @@ class ContestRepositoryImpl @Inject constructor(
     override suspend fun softDelete(contestId: Long): Result<Unit> {
         return try {
             contestDao.softDelete(contestId)
+            syncManager.triggerSync()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.error("Erro ao inativar concurso: ${e.localizedMessage}", e)
+        }
+    }
+
+    override suspend fun reactivate(contestId: Long): Result<Unit> {
+        return try {
+            contestDao.reactivate(contestId)
+            syncManager.triggerSync()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao reativar concurso: ${e.localizedMessage}", e)
         }
     }
 
@@ -71,6 +84,12 @@ class ContestRepositoryImpl @Inject constructor(
 
     override fun getActiveContestsByUser(userId: String): Flow<List<Contest>> {
         return contestDao.getActiveByUser(userId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getArchivedContestsByUser(userId: String): Flow<List<Contest>> {
+        return contestDao.getArchivedByUser(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }

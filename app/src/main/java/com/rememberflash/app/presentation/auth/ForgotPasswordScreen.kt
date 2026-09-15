@@ -17,15 +17,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.rememberflash.app.R
 
 @Composable
 fun ForgotPasswordScreen(
+    viewModel: ForgotPasswordViewModel = hiltViewModel(),
     onNavigateToReset: (String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
 
     Box(
         modifier = Modifier
@@ -51,17 +52,16 @@ fun ForgotPasswordScreen(
             )
 
             Text(
-                text = "Informe seu e-mail para receber o código",
+                text = "Informe seu e-mail para receber o código de 6 dígitos",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
             )
 
             OutlinedTextField(
-                value = email,
+                value = uiState.email,
                 onValueChange = { 
-                    email = it
-                    error = null 
+                    viewModel.onEmailChanged(it)
                 },
                 label = { Text(stringResource(R.string.login_email_hint)) },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
@@ -72,10 +72,11 @@ fun ForgotPasswordScreen(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 ),
-                singleLine = true
+                singleLine = true,
+                enabled = !uiState.isLoading
             )
 
-            error?.let { errorMsg ->
+            uiState.error?.let { errorMsg ->
                 Text(
                     text = errorMsg,
                     color = MaterialTheme.colorScheme.error,
@@ -90,13 +91,11 @@ fun ForgotPasswordScreen(
 
             Button(
                 onClick = {
-                    if (email.isBlank()) {
-                        error = "O e-mail é obrigatório"
-                    } else {
-                        // Simula o envio de código e avança para a tela de redefinição
-                        onNavigateToReset(email)
+                    viewModel.sendResetCode { emailTarget ->
+                        onNavigateToReset(emailTarget)
                     }
                 },
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -106,14 +105,23 @@ fun ForgotPasswordScreen(
                     contentColor = Color.White
                 )
             ) {
-                Text(
-                    text = "Enviar Código",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Enviar Código",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
 
             TextButton(
                 onClick = onNavigateToLogin,
+                enabled = !uiState.isLoading,
                 modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
             ) {
                 Text(

@@ -3,6 +3,8 @@ package com.rememberflash.app.presentation.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.domain.repository.AuthRepository
+import com.rememberflash.app.domain.usecase.contest.GetArchivedContestsUseCase
+import com.rememberflash.app.domain.usecase.contest.ReactivateContestUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +15,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val getArchivedContestsUseCase: GetArchivedContestsUseCase,
+    private val reactivateContestUseCase: ReactivateContestUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -27,11 +31,23 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val result = authRepository.getCurrentSession()
+            val user = result.getOrNull()
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
-                    user = result.getOrNull()
+                    user = user
                 )
+            }
+            if (user != null) {
+                observeArchivedContests(user.id)
+            }
+        }
+    }
+
+    private fun observeArchivedContests(userId: String) {
+        viewModelScope.launch {
+            getArchivedContestsUseCase(userId).collect { contests ->
+                _uiState.update { it.copy(archivedContests = contests) }
             }
         }
     }
@@ -159,6 +175,23 @@ class ProfileViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun reactivateContest(contestId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isReactivatingId = contestId, contestActionFeedback = null) }
+            val result = reactivateContestUseCase(contestId)
+            _uiState.update { state ->
+                state.copy(
+                    isReactivatingId = null,
+                    contestActionFeedback = if (result.isSuccess) "Concurso reativado com sucesso!" else "Falha ao reativar concurso."
+                )
+            }
+        }
+    }
+
+    fun clearContestActionFeedback() {
+        _uiState.update { it.copy(contestActionFeedback = null) }
     }
 
     fun logout() {

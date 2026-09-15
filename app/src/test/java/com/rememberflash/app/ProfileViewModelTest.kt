@@ -1,11 +1,17 @@
 package com.rememberflash.app
 
 import com.rememberflash.app.domain.common.Result
+import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.model.User
 import com.rememberflash.app.domain.repository.AuthRepository
+import com.rememberflash.app.domain.repository.ContestRepository
+import com.rememberflash.app.domain.usecase.contest.GetArchivedContestsUseCase
+import com.rememberflash.app.domain.usecase.contest.ReactivateContestUseCase
 import com.rememberflash.app.presentation.profile.ProfileViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -23,6 +29,9 @@ class ProfileViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var fakeAuthRepository: FakeAuthRepository
+    private lateinit var fakeContestRepository: FakeContestRepository
+    private lateinit var getArchivedContestsUseCase: GetArchivedContestsUseCase
+    private lateinit var reactivateContestUseCase: ReactivateContestUseCase
     private lateinit var viewModel: ProfileViewModel
 
     private val testUser = User(
@@ -70,11 +79,42 @@ class ProfileViewModelTest {
         }
     }
 
+    class FakeContestRepository : ContestRepository {
+        val archivedContests = mutableListOf<Contest>()
+        val archivedFlow = MutableStateFlow<List<Contest>>(emptyList())
+        var shouldFailReactivation = false
+        var lastReactivatedId: Long? = null
+
+        override suspend fun insert(contest: Contest): Result<Long> = Result.success(contest.id)
+        override suspend fun update(contest: Contest): Result<Unit> = Result.success(Unit)
+        override suspend fun softDelete(contestId: Long): Result<Unit> = Result.success(Unit)
+        override suspend fun delete(contestId: Long): Result<Unit> = Result.success(Unit)
+        override fun getActiveContestsByUser(userId: String): Flow<List<Contest>> = MutableStateFlow(emptyList())
+        override fun getArchivedContestsByUser(userId: String): Flow<List<Contest>> = archivedFlow
+        override suspend fun reactivate(contestId: Long): Result<Unit> {
+            if (shouldFailReactivation) return Result.error("Falha de teste")
+            lastReactivatedId = contestId
+            archivedContests.removeAll { it.id == contestId }
+            archivedFlow.value = archivedContests.toList()
+            return Result.success(Unit)
+        }
+        override suspend fun getById(contestId: Long): Result<Contest> = Result.error("Não encontrado")
+        override fun getAllByUser(userId: String): Flow<List<Contest>> = MutableStateFlow(emptyList())
+    }
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeAuthRepository = FakeAuthRepository(defaultUser = testUser)
-        viewModel = ProfileViewModel(fakeAuthRepository)
+        fakeContestRepository = FakeContestRepository()
+        getArchivedContestsUseCase = GetArchivedContestsUseCase(fakeContestRepository)
+        reactivateContestUseCase = ReactivateContestUseCase(fakeContestRepository)
+
+        viewModel = ProfileViewModel(
+            authRepository = fakeAuthRepository,
+            getArchivedContestsUseCase = getArchivedContestsUseCase,
+            reactivateContestUseCase = reactivateContestUseCase
+        )
     }
 
     @After
@@ -83,11 +123,50 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `init should load user session into uiState`() = runTest(testDispatcher) {
+    fun `init should load user session and observe archived contests into uiState`() = runTest(testDispatcher) {
+        val archived = listOf(
+            Contest(id = 100L, userId = "u1", title = "INSS 2024", isActive = false),
+            Contest(id = 200L, userId = "u1", title = "PF 2024", isActive = false)
+        )
+        fakeContestRepository.archivedContests.addAll(archived)
+        fakeContestRepository.archivedFlow.value = archived
+
         testScheduler.advanceUntilIdle()
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
         assertEquals(testUser, state.user)
+        assertEquals(2, state.archivedContests.size)
+        assertEquals("INSS 2024", state.archivedContests[0].title)
+    }
+
+    @Test
+    fun `reactivateContest success should reactivate contest and set feedback message`() = runTest(testDispatcher) {
+        val archived = listOf(
+            Contest(id = 100L, userId = "u1", title = "INSS 2024", isActive = false)
+        )
+        fakeContestRepository.archivedContests.addAll(archived)
+        fakeContestRepository.archivedFlow.value = archived
+        testScheduler.advanceUntilIdle()
+
+        viewModel.reactivateContest(100L)
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(100L, fakeContestRepository.lastReactivatedId)
+        assertNull(state.isReactivatingId)
+        assertEquals("Concurso reativado com sucesso!", state.contestActionFeedback)
+        assertEquals(0, state.archivedContests.size)
+    }
+
+    @Test
+    fun `reactivateContest failure should set error feedback message`() = runTest(testDispatcher) {
+        fakeContestRepository.shouldFailReactivation = true
+        viewModel.reactivateContest(100L)
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertNull(state.isReactivatingId)
+        assertEquals("Falha ao reativar concurso.", state.contestActionFeedback)
     }
 
     @Test

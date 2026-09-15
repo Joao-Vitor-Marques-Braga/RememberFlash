@@ -21,20 +21,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun ResetPasswordScreen(
     email: String,
+    viewModel: ResetPasswordViewModel = hiltViewModel(),
     onResetSuccess: () -> Unit
 ) {
-    var securityCode by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    
-    var newPasswordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
-    
-    var error by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(email) {
+        viewModel.initEmail(email)
+    }
 
     Box(
         modifier = Modifier
@@ -60,21 +59,17 @@ fun ResetPasswordScreen(
             )
 
             Text(
-                text = "Enviamos um código para $email",
+                text = "Enviamos um código para ${if (uiState.email.isNotBlank()) uiState.email else email}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
             )
 
-            // Código de Segurança
+            // Código de Segurança (OTP)
             OutlinedTextField(
-                value = securityCode,
+                value = uiState.securityCode,
                 onValueChange = { 
-                    val raw = it.filter { char -> char.isDigit() }
-                    if (raw.length <= 6) {
-                        securityCode = raw
-                        error = null
-                    }
+                    viewModel.onSecurityCodeChanged(it)
                 },
                 label = { Text("Código de Segurança (6 dígitos)") },
                 leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null) },
@@ -85,26 +80,26 @@ fun ResetPasswordScreen(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 ),
-                singleLine = true
+                singleLine = true,
+                enabled = !uiState.isLoading
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Nova Senha
             OutlinedTextField(
-                value = newPassword,
+                value = uiState.newPassword,
                 onValueChange = {
-                    newPassword = it
-                    error = null
+                    viewModel.onNewPasswordChanged(it)
                 },
-                label = { Text("Nova Senha") },
+                label = { Text("Nova Senha (mín. 8 chars, letras, números e símbolos)") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    val image = if (newPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                    val image = if (uiState.isNewPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { viewModel.toggleNewPasswordVisibility() }) {
                         Icon(image, contentDescription = null)
                     }
                 },
-                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (uiState.isNewPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -112,26 +107,26 @@ fun ResetPasswordScreen(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 ),
-                singleLine = true
+                singleLine = true,
+                enabled = !uiState.isLoading
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Confirmar Nova Senha
             OutlinedTextField(
-                value = confirmPassword,
+                value = uiState.confirmPassword,
                 onValueChange = {
-                    confirmPassword = it
-                    error = null
+                    viewModel.onConfirmPasswordChanged(it)
                 },
                 label = { Text("Confirmar Nova Senha") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    val image = if (uiState.isConfirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { viewModel.toggleConfirmPasswordVisibility() }) {
                         Icon(image, contentDescription = null)
                     }
                 },
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (uiState.isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -139,10 +134,11 @@ fun ResetPasswordScreen(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 ),
-                singleLine = true
+                singleLine = true,
+                enabled = !uiState.isLoading
             )
 
-            error?.let { errorMsg ->
+            uiState.error?.let { errorMsg ->
                 Text(
                     text = errorMsg,
                     color = MaterialTheme.colorScheme.error,
@@ -157,21 +153,11 @@ fun ResetPasswordScreen(
 
             Button(
                 onClick = {
-                    if (securityCode.length != 6) {
-                        error = "O código deve ter 6 dígitos"
-                        return@Button
+                    viewModel.resetPassword {
+                        onResetSuccess()
                     }
-                    if (newPassword.length < 6) {
-                        error = "A senha deve ter no mínimo 6 caracteres"
-                        return@Button
-                    }
-                    if (newPassword != confirmPassword) {
-                        error = "As senhas não coincidem"
-                        return@Button
-                    }
-                    // Simula sucesso e volta para o login
-                    onResetSuccess()
                 },
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -181,10 +167,18 @@ fun ResetPasswordScreen(
                     contentColor = Color.White
                 )
             ) {
-                Text(
-                    text = "Redefinir Senha",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Redefinir Senha",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))

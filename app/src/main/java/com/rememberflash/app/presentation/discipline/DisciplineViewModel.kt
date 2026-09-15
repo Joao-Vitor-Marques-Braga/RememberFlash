@@ -1,36 +1,36 @@
 package com.rememberflash.app.presentation.discipline
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.rememberflash.app.data.remote.gemini.GeminiClient
+import com.rememberflash.app.data.local.pdf.LocalPdfExtractor
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Flashcard
 import com.rememberflash.app.domain.model.FlashcardSource
 import com.rememberflash.app.domain.usecase.discipline.GetDisciplineByIdUseCase
 import com.rememberflash.app.domain.usecase.flashcard.CreateFlashcardUseCase
 import com.rememberflash.app.domain.usecase.flashcard.DeleteFlashcardUseCase
-import com.rememberflash.app.domain.usecase.flashcard.ExtractFlashcardsFromPdfUseCase
+import com.rememberflash.app.domain.usecase.flashcard.GenerateFlashcardsFromTextUseCase
 import com.rememberflash.app.domain.usecase.flashcard.GetFlashcardsByDisciplineUseCase
 import com.rememberflash.app.domain.usecase.flashcard.UpdateFlashcardUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateQuestionsUseCase
 import com.rememberflash.app.domain.usecase.question.GetQuestionsByDisciplineUseCase
+import com.rememberflash.app.domain.usecase.topic.CreateTopicUseCase
+import com.rememberflash.app.domain.usecase.topic.DeleteTopicUseCase
+import com.rememberflash.app.domain.usecase.topic.GetTopicsByDisciplineUseCase
+import com.rememberflash.app.domain.usecase.topic.UpdateTopicUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
-
-import com.rememberflash.app.domain.usecase.topic.CreateTopicUseCase
-import com.rememberflash.app.domain.usecase.topic.DeleteTopicUseCase
-import com.rememberflash.app.domain.usecase.topic.GetTopicsByDisciplineUseCase
-import com.rememberflash.app.domain.usecase.topic.UpdateTopicUseCase
 
 @HiltViewModel
 class DisciplineViewModel @Inject constructor(
@@ -44,11 +44,11 @@ class DisciplineViewModel @Inject constructor(
     private val createFlashcardUseCase: CreateFlashcardUseCase,
     private val updateFlashcardUseCase: UpdateFlashcardUseCase,
     private val deleteFlashcardUseCase: DeleteFlashcardUseCase,
-    private val extractFlashcardsFromPdfUseCase: ExtractFlashcardsFromPdfUseCase,
+    private val generateFlashcardsFromTextUseCase: GenerateFlashcardsFromTextUseCase,
     private val generateQuestionsUseCase: GenerateQuestionsUseCase,
-    private val geminiClient: GeminiClient,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
     private val syncManager: com.rememberflash.app.data.sync.SyncManager,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -58,8 +58,6 @@ class DisciplineViewModel @Inject constructor(
     val disciplineId: Long = checkNotNull(savedStateHandle["disciplineId"]) {
         "disciplineId é obrigatório"
     }
-
-    private val gson = Gson()
 
     val isSyncing = syncManager.isSyncing
 
@@ -190,7 +188,6 @@ class DisciplineViewModel @Inject constructor(
     // PDF Geração automatizada (RF007)
     fun generateFlashcardsFromPdf(quantity: Int) {
         val uri = _uiState.value.pdfUri
-        val name = _uiState.value.pdfName
         if (uri == null) {
             _uiState.value = _uiState.value.copy(error = "Selecione um arquivo PDF primeiro")
             return
@@ -199,67 +196,43 @@ class DisciplineViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isGeneratingFlashcards = true, error = null)
 
-            // Simulação de A2 - PDF sem texto (verificação do nome do arquivo ou conteúdo escaneado)
-            if (name.lowercase().contains("scanned") || name.lowercase().contains("imagem") || name.lowercase().contains("vazio")) {
-                delay(1500)
+            val extractedText = withContext(Dispatchers.IO) {
+                LocalPdfExtractor.extractText(context, uri)
+            }
+
+            if (extractedText.isBlank() || extractedText.length < 50) {
                 _uiState.value = _uiState.value.copy(
                     isGeneratingFlashcards = false,
-                    error = "Não foi possível ler o texto deste PDF. Certifique-se de que o documento não seja apenas uma imagem escaneada."
+                    error = "O PDF selecionado não contém texto legível (documento escaneado). Envie um PDF com camada de texto"
                 )
                 return@launch
             }
 
-            try {
-                // Conteúdo simulado baseado no nome do arquivo para alimentar o Gemini (garantindo PDF legível)
-                val cleanName = name.replace(".pdf", "").replace("_", " ").replace("-", " ")
-                val studyText = "Resumo analítico sobre a disciplina de ${_uiState.value.discipline?.name ?: "estudos"} e tema de $cleanName. " +
-                        "Este documento trata de definições legais, doutrina aplicável e principais regras cobradas em provas de concursos públicos."
-
-                // Chama a API do Gemini
-                val jsonResponse = geminiClient.extractFlashcardsFromText(studyText)
-
-                // Desserialização
-                val type = object : TypeToken<Map<String, List<RawFlashcard>>>() {}.type
-                val data: Map<String, List<RawFlashcard>> = gson.fromJson(jsonResponse, type)
-                val rawCards = data["flashcards"]
-
-                if (rawCards.isNullOrEmpty()) {
+            when (val saveResult = generateFlashcardsFromTextUseCase(
+                text = extractedText,
+                disciplineId = disciplineId,
+                quantity = quantity,
+                topicId = null
+            )) {
+                is Result.Success -> {
+                    syncManager.triggerSync()
                     _uiState.value = _uiState.value.copy(
                         isGeneratingFlashcards = false,
-                        error = "A Criação automática demorou a responder ou o texto é muito complexo. Tente novamente em instantes."
+                        pdfUri = null,
+                        pdfName = "",
+                        pdfSize = 0L,
+                        error = null
                     )
-                    return@launch
                 }
-
-                // Limita a quantidade se solicitado
-                val cardsToSave = rawCards.take(quantity).map { Pair(it.frente, it.verso) }
-
-                // Salva
-                when (val saveResult = extractFlashcardsFromPdfUseCase(disciplineId, cardsToSave)) {
-                    is Result.Success -> {
-                        syncManager.triggerSync()
-                        _uiState.value = _uiState.value.copy(
-                            isGeneratingFlashcards = false,
-                            pdfUri = null,
-                            pdfName = "",
-                            pdfSize = 0L,
-                            error = null
-                        )
-                    }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            isGeneratingFlashcards = false,
-                            error = saveResult.message
-                        )
-                    }
-                    else -> {}
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isGeneratingFlashcards = false,
+                        error = saveResult.message
+                    )
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("DisciplineViewModel", "Erro ao gerar flashcards via PDF", e)
-                _uiState.value = _uiState.value.copy(
-                    isGeneratingFlashcards = false,
-                    error = e.message ?: "Falha ao gerar flashcards com a Inteligência Artificial."
-                )
+                else -> {
+                    _uiState.value = _uiState.value.copy(isGeneratingFlashcards = false)
+                }
             }
         }
     }
@@ -340,9 +313,4 @@ class DisciplineViewModel @Inject constructor(
     fun resetQuestionsSuccess() {
         _uiState.value = _uiState.value.copy(isQuestionsGeneratedSuccess = false)
     }
-
-    private data class RawFlashcard(
-        val frente: String,
-        val verso: String
-    )
 }

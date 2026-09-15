@@ -1,5 +1,6 @@
 package com.rememberflash.app.presentation.profile
 
+import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.model.User
 
 data class ProfileUiState(
@@ -17,5 +18,9 @@ data class ProfileUiState(
     val confirmPasswordForEmailText: String = "",
     val isChangingEmailLoading: Boolean = false,
     val emailChangeError: String? = null,
-    val emailChangeSuccess: Boolean = false
+    val emailChangeSuccess: Boolean = false,
+
+    val archivedContests: List<Contest> = emptyList(),
+    val isReactivatingId: Long? = null,
+    val contestActionFeedback: String? = null
 )

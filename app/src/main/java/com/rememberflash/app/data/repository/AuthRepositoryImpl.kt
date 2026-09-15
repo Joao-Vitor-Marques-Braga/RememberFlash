@@ -10,6 +10,9 @@ import com.rememberflash.app.data.local.preferences.SecurePreferencesManager
 import com.rememberflash.app.data.remote.supabase.dto.UserSupabaseDto
 import com.rememberflash.app.data.sync.SyncManager
 import com.rememberflash.app.data.util.AesEncryptionUtil
+import com.rememberflash.app.data.local.database.dao.UserDao
+import com.rememberflash.app.data.local.database.entity.UserEntity
+import com.rememberflash.app.data.mapper.toDomain
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.User
 import com.rememberflash.app.domain.repository.AuthRepository
@@ -24,7 +27,8 @@ class AuthRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferencesManager: SecurePreferencesManager,
     private val postgrest: Postgrest,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val userDao: UserDao
 ) : AuthRepository {
 
     private fun isOnline(): Boolean {
@@ -42,8 +46,22 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveSession(token: String, user: User) {
-        preferencesManager.saveToken(token)
+        val cryptoToken = if (token.isBlank() || token.startsWith("mock_")) {
+            UUID.randomUUID().toString()
+        } else {
+            token
+        }
+        preferencesManager.saveToken(cryptoToken)
         preferencesManager.saveUser(user)
+        userDao.insert(
+            UserEntity(
+                id = user.id,
+                name = user.name,
+                email = user.email,
+                cpf = user.cpf,
+                createdAt = user.createdAt
+            )
+        )
         syncManager.triggerSync(user.id)
     }
 
@@ -149,12 +167,24 @@ class AuthRepositoryImpl @Inject constructor(
                 postgrest.from("users").upsert(dto)
                 Log.d("AuthRepositoryImpl", "Usuário criado com sucesso no Supabase: ${user.email}")
 
-                // Salva no cache local seguro
+                // Salva no cache local seguro e Room
                 preferencesManager.saveRegisteredUser(RegisteredUser(user, hashedPassword))
+                userDao.insert(
+                    UserEntity(
+                        id = user.id,
+                        name = user.name,
+                        email = user.email,
+                        cpf = cleanCpf,
+                        passwordHash = hashedPassword,
+                        createdAt = user.createdAt
+                    )
+                )
                 Result.success(user)
             } else {
                 // 2. OFFLINE: Verifica no armazenamento local
-                val localUser = preferencesManager.findRegisteredUser(email)
+                val localUser = preferencesManager.findRegisteredUser(email) ?: userDao.findByEmail(email)?.let {
+                    RegisteredUser(it.toDomain(), it.passwordHash ?: "")
+                }
                 if (localUser != null) {
                     return Result.error("E-mail já cadastrado localmente.")
                 }
@@ -169,6 +199,16 @@ class AuthRepositoryImpl @Inject constructor(
                 if (!success) {
                     return Result.error("E-mail ou CPF já cadastrado localmente.")
                 }
+                userDao.insert(
+                    UserEntity(
+                        id = user.id,
+                        name = user.name,
+                        email = user.email,
+                        cpf = cleanCpf,
+                        passwordHash = hashedPassword,
+                        createdAt = user.createdAt
+                    )
+                )
                 Result.success(user)
             }
         } catch (e: Exception) {
