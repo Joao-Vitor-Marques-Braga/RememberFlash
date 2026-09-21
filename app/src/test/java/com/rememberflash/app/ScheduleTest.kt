@@ -80,6 +80,8 @@ class ScheduleTest {
         override suspend fun softDelete(contestId: Long): Result<Unit> = Result.success(Unit)
         override suspend fun getById(contestId: Long): Result<Contest> = Result.success(contest)
         override fun getActiveContestsByUser(userId: String): Flow<List<Contest>> = flowOf(listOf(contest))
+        override fun getArchivedContestsByUser(userId: String): Flow<List<Contest>> = flowOf(emptyList())
+        override suspend fun reactivate(contestId: Long): Result<Unit> = Result.success(Unit)
         override fun getAllByUser(userId: String): Flow<List<Contest>> = flowOf(listOf(contest))
     }
 

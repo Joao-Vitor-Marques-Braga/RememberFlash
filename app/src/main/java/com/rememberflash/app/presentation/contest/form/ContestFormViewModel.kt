@@ -3,24 +3,21 @@ package com.rememberflash.app.presentation.contest.form
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rememberflash.app.data.sync.SyncManager
 import com.rememberflash.app.domain.common.Result
 import com.rememberflash.app.domain.model.Contest
 import com.rememberflash.app.domain.repository.AuthRepository
 import com.rememberflash.app.domain.usecase.contest.CreateContestUseCase
 import com.rememberflash.app.domain.usecase.contest.GetContestByIdUseCase
 import com.rememberflash.app.domain.usecase.contest.UpdateContestUseCase
-import com.rememberflash.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-data class PdfAttachment(
-    val uri: String,
-    val name: String
-)
+data class PdfAttachment(val uri: String, val name: String)
 
 data class ContestFormUiState(
     val id: Long? = null,
@@ -35,17 +32,19 @@ data class ContestFormUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val error: String? = null,
-    val savingStep: String = ""
+    val savingStep: String = "",
 )
 
 @HiltViewModel
-class ContestFormViewModel @Inject constructor(
+class ContestFormViewModel
+@Inject
+constructor(
     private val savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val createContestUseCase: CreateContestUseCase,
     private val updateContestUseCase: UpdateContestUseCase,
     private val getContestByIdUseCase: GetContestByIdUseCase,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContestFormUiState())
@@ -64,37 +63,45 @@ class ContestFormViewModel @Inject constructor(
             when (val result = getContestByIdUseCase(id)) {
                 is Result.Success -> {
                     val contest = result.data
-                    val attachments = contest.syllabusPdfUri?.split("|")
-                        ?.filter { it.isNotBlank() }
-                        ?.map { uriStr ->
-                            val decodedUri = android.net.Uri.parse(uriStr)
-                            val name = decodedUri.lastPathSegment ?: "anexo.pdf"
-                            PdfAttachment(uriStr, name)
-                        } ?: emptyList()
+                    val attachments =
+                        contest.syllabusPdfUri
+                            ?.split("|")
+                            ?.filter { it.isNotBlank() }
+                            ?.map { uriStr ->
+                                val decodedUri = android.net.Uri.parse(uriStr)
+                                val name = decodedUri.lastPathSegment ?: "anexo.pdf"
+                                PdfAttachment(uriStr, name)
+                            } ?: emptyList()
 
-                    val jobFromDesc = if (contest.description.startsWith("Cargo: ")) {
-                        contest.description.substringAfter("Cargo: ").substringBefore("\n\n").trim()
-                    } else {
-                        ""
-                    }
-                    _uiState.value = _uiState.value.copy(
-                        id = contest.id,
-                        title = contest.title,
-                        organizerName = contest.organizerName,
-                        questionType = contest.questionType,
-                        pdfAttachments = attachments,
-                        jobPosition = jobFromDesc,
-                        aiDifficulty = contest.aiDifficulty.ifBlank { "Médio" },
-                        aiRigor = contest.aiRigor.ifBlank { "Padrão" },
-                        aiTone = contest.aiTone.ifBlank { "Explicativo" },
-                        isLoading = false
-                    )
+                    val jobFromDesc =
+                        if (contest.description.startsWith("Cargo: ")) {
+                            contest.description
+                                .substringAfter("Cargo: ")
+                                .substringBefore("\n\n")
+                                .trim()
+                        } else {
+                            ""
+                        }
+                    _uiState.value =
+                        _uiState.value.copy(
+                            id = contest.id,
+                            title = contest.title,
+                            organizerName = contest.organizerName,
+                            questionType = contest.questionType,
+                            pdfAttachments = attachments,
+                            jobPosition = jobFromDesc,
+                            aiDifficulty = contest.aiDifficulty.ifBlank { "Médio" },
+                            aiRigor = contest.aiRigor.ifBlank { "Padrão" },
+                            aiTone = contest.aiTone.ifBlank { "Explicativo" },
+                            isLoading = false,
+                        )
                 }
                 is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "Erro ao carregar concurso: ${result.message}"
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isLoading = false,
+                            error = "Erro ao carregar concurso: ${result.message}",
+                        )
                 }
                 else -> {}
             }
@@ -133,19 +140,13 @@ class ContestFormViewModel @Inject constructor(
         val current = _uiState.value.pdfAttachments.toMutableList()
         if (current.none { it.uri == uri }) {
             current.add(PdfAttachment(uri, name))
-            _uiState.value = _uiState.value.copy(
-                pdfAttachments = current,
-                error = null
-            )
+            _uiState.value = _uiState.value.copy(pdfAttachments = current, error = null)
         }
     }
 
     fun removePdfAttachment(uri: String) {
         val current = _uiState.value.pdfAttachments.filter { it.uri != uri }
-        _uiState.value = _uiState.value.copy(
-            pdfAttachments = current,
-            error = null
-        )
+        _uiState.value = _uiState.value.copy(pdfAttachments = current, error = null)
     }
 
     fun onPdfError(errorMsg: String?) {
@@ -154,60 +155,79 @@ class ContestFormViewModel @Inject constructor(
 
     fun onSaveClicked() {
         val state = _uiState.value
-        if (state.pdfAttachments.isNotEmpty() && state.jobPosition.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Informe o cargo pretendido para podermos extrair as disciplinas corretas do edital.")
+        if (
+            (state.title.isBlank() || state.organizerName.isBlank()) &&
+                state.pdfAttachments.isEmpty()
+        ) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error =
+                        "Preencha o título e a banca examinadora, ou selecione um edital para preenchimento automático."
+                )
             return
         }
-        if ((state.title.isBlank() || state.organizerName.isBlank()) && state.pdfAttachments.isEmpty()) {
-            _uiState.value = _uiState.value.copy(error = "Preencha o título e a banca examinadora, ou selecione um edital para preenchimento automático.")
-            return
+
+        if (state.pdfAttachments.isNotEmpty()) {
+            if (state.organizerName.isBlank() || state.jobPosition.isBlank()) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error =
+                            "Ao anexar um edital, informe obrigatoriamente a Banca Examinadora e o Cargo Pretendido para que a IA filtre o conteúdo programático correto."
+                    )
+                return
+            }
         }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
+
             val sessionResult = authRepository.getCurrentSession()
             if (sessionResult !is Result.Success) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "Usuário não autenticado.")
+                _uiState.value =
+                    _uiState.value.copy(isLoading = false, error = "Usuário não autenticado.")
                 return@launch
             }
             val userId = sessionResult.data.id
 
-            val syllabusPdfUriMerged = if (state.pdfAttachments.isNotEmpty()) {
-                state.pdfAttachments.joinToString("|") { it.uri }
-            } else {
-                null
-            }
-
-            val contest = Contest(
-                id = state.id ?: 0L,
-                userId = userId,
-                title = state.title,
-                description = "Cargo: ${state.jobPosition}",
-                organizerName = state.organizerName,
-                questionType = state.questionType,
-                syllabusPdfUri = syllabusPdfUriMerged,
-                aiDifficulty = state.aiDifficulty,
-                aiRigor = state.aiRigor,
-                aiTone = state.aiTone
-            )
-
-            val result = if (state.id == null) {
-                createContestUseCase(contest) { step ->
-                    _uiState.value = _uiState.value.copy(savingStep = step)
+            val syllabusPdfUriMerged =
+                if (state.pdfAttachments.isNotEmpty()) {
+                    state.pdfAttachments.joinToString("|") { it.uri }
+                } else {
+                    null
                 }
-            } else {
-                updateContestUseCase(contest) { step ->
-                    _uiState.value = _uiState.value.copy(savingStep = step)
+
+            val contest =
+                Contest(
+                    id = state.id ?: 0L,
+                    userId = userId,
+                    title = state.title,
+                    description = "Cargo: ${state.jobPosition}",
+                    organizerName = state.organizerName,
+                    questionType = state.questionType,
+                    syllabusPdfUri = syllabusPdfUriMerged,
+                    aiDifficulty = state.aiDifficulty,
+                    aiRigor = state.aiRigor,
+                    aiTone = state.aiTone,
+                )
+
+            val result =
+                if (state.id == null) {
+                    createContestUseCase(contest) { step ->
+                        _uiState.value = _uiState.value.copy(savingStep = step)
+                    }
+                } else {
+                    updateContestUseCase(contest) { step ->
+                        _uiState.value = _uiState.value.copy(savingStep = step)
+                    }
                 }
-            }
 
             when (result) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
                     syncManager.triggerSync()
                 }
-                is Result.Error -> _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
+                is Result.Error ->
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
                 else -> {}
             }
         }

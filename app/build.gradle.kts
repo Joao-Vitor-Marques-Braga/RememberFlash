@@ -83,6 +83,10 @@ android {
                 it.jvmArgs("-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8")
                 it.systemProperty("file.encoding", "UTF-8")
                 it.systemProperty("sun.jnu.encoding", "UTF-8")
+                it.testLogging {
+                    showStandardStreams = true
+                    events("passed", "skipped", "failed")
+                }
             }
         }
     }
