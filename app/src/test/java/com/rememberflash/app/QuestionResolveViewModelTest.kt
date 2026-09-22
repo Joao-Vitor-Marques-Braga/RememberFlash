@@ -31,38 +31,43 @@ class QuestionResolveViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private val fakeDiscipline = Discipline(
-        id = 10L,
-        contestId = 1L,
-        name = "Direito Constitucional",
-        weight = 5.0
-    )
+    private val fakeDiscipline =
+        Discipline(id = 10L, contestId = 1L, name = "Direito Constitucional", weight = 5.0)
 
-    private val fakeQuestions = listOf(
-        Question(
-            id = 101L,
-            disciplineId = 10L,
-            statement = "A Constituição Federal é de 1988?",
-            options = listOf("Sim", "Não"),
-            correctIndex = 0,
-            explanation = "Promulgada em 1988."
-        ),
-        Question(
-            id = 102L,
-            disciplineId = 10L,
-            statement = "O Brasil é uma monarquia?",
-            options = listOf("Sim", "Não"),
-            correctIndex = 1,
-            explanation = "O Brasil é uma República."
+    private val fakeQuestions =
+        listOf(
+            Question(
+                id = 101L,
+                disciplineId = 10L,
+                statement = "A Constituição Federal é de 1988?",
+                options = listOf("Sim", "Não"),
+                correctIndex = 0,
+                explanation = "Promulgada em 1988.",
+            ),
+            Question(
+                id = 102L,
+                disciplineId = 10L,
+                statement = "O Brasil é uma monarquia?",
+                options = listOf("Sim", "Não"),
+                correctIndex = 1,
+                explanation = "O Brasil é uma República.",
+            ),
         )
-    )
 
     class FakeDisciplineRepository(val discipline: Discipline) : DisciplineRepository {
-        override suspend fun insert(discipline: Discipline): Result<Long> = Result.success(discipline.id)
+        override suspend fun insert(discipline: Discipline): Result<Long> =
+            Result.success(discipline.id)
+
         override suspend fun update(discipline: Discipline): Result<Unit> = Result.success(Unit)
+
         override suspend fun delete(disciplineId: Long): Result<Unit> = Result.success(Unit)
-        override suspend fun getById(disciplineId: Long): Result<Discipline> = Result.success(discipline)
-        override fun getByContest(contestId: Long): Flow<List<Discipline>> = flowOf(listOf(discipline))
+
+        override suspend fun getById(disciplineId: Long): Result<Discipline> =
+            Result.success(discipline)
+
+        override fun getByContest(contestId: Long): Flow<List<Discipline>> =
+            flowOf(listOf(discipline))
+
         override fun getAllDisciplines(): Flow<List<Discipline>> = flowOf(listOf(discipline))
     }
 
@@ -73,31 +78,56 @@ class QuestionResolveViewModelTest {
         var savedAttempt: MockExamAttempt? = null
         var resetCalled = false
 
-        override fun getQuestionsByDiscipline(disciplineId: Long): Flow<List<Question>> = flowOf(questions)
+        override fun getQuestionsByDiscipline(disciplineId: Long): Flow<List<Question>> =
+            flowOf(questions)
+
         override fun getQuestionsByTopic(topicId: Long): Flow<List<Question>> = flowOf(emptyList())
-        override suspend fun clearQuestionsByTopic(topicId: Long): Result<Unit> = Result.success(Unit)
-        override suspend fun saveQuestions(questions: List<Question>): Result<Unit> = Result.success(Unit)
-        override suspend fun clearQuestionsByDiscipline(disciplineId: Long): Result<Unit> = Result.success(Unit)
-        override suspend fun answerQuestion(questionId: Long, chosenOption: Int, isCorrect: Boolean): Result<Unit> {
+
+        override suspend fun clearQuestionsByTopic(topicId: Long): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun saveQuestions(questions: List<Question>): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun clearQuestionsByDiscipline(disciplineId: Long): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun answerQuestion(
+            questionId: Long,
+            chosenOption: Int,
+            isCorrect: Boolean,
+        ): Result<Unit> {
             lastAnsweredQuestionId = questionId
             lastAnsweredOption = chosenOption
             lastAnsweredIsCorrect = isCorrect
             return Result.success(Unit)
         }
+
         override fun getAllQuestions(): Flow<List<Question>> = flowOf(questions)
-        override suspend fun getQuestionById(questionId: Long): Result<Question> = Result.success(questions.first { it.id == questionId })
-        override fun getAttemptsByDiscipline(disciplineId: Long): Flow<List<MockExamAttempt>> = flowOf(emptyList())
-        override fun getAttemptsByContest(contestId: Long): Flow<List<MockExamAttempt>> = flowOf(emptyList())
+
+        override suspend fun getQuestionById(questionId: Long): Result<Question> =
+            Result.success(questions.first { it.id == questionId })
+
+        override fun getAttemptsByDiscipline(disciplineId: Long): Flow<List<MockExamAttempt>> =
+            flowOf(emptyList())
+
+        override fun getAttemptsByContest(contestId: Long): Flow<List<MockExamAttempt>> =
+            flowOf(emptyList())
+
         override fun getAllAttempts(): Flow<List<MockExamAttempt>> = flowOf(emptyList())
+
         override suspend fun saveMockExamAttempt(attempt: MockExamAttempt): Result<Long> {
             savedAttempt = attempt
             return Result.success(1L)
         }
+
         override suspend fun resetQuestionsForDiscipline(disciplineId: Long): Result<Unit> {
             resetCalled = true
             return Result.success(Unit)
         }
-        override suspend fun resetQuestionsForContest(contestId: Long): Result<Unit> = Result.success(Unit)
+
+        override suspend fun resetQuestionsForContest(contestId: Long): Result<Unit> =
+            Result.success(Unit)
     }
 
     private lateinit var fakeDisciplineRepo: FakeDisciplineRepository
@@ -114,12 +144,13 @@ class QuestionResolveViewModelTest {
         val getQuestionsByDisciplineUseCase = GetQuestionsByDisciplineUseCase(fakeQuestionRepo)
         val savedStateHandle = SavedStateHandle(mapOf("disciplineId" to 10L))
 
-        viewModel = QuestionResolveViewModel(
-            getDisciplineByIdUseCase = getDisciplineByIdUseCase,
-            getQuestionsByDisciplineUseCase = getQuestionsByDisciplineUseCase,
-            questionRepository = fakeQuestionRepo,
-            savedStateHandle = savedStateHandle
-        )
+        viewModel =
+            QuestionResolveViewModel(
+                getDisciplineByIdUseCase = getDisciplineByIdUseCase,
+                getQuestionsByDisciplineUseCase = getQuestionsByDisciplineUseCase,
+                questionRepository = fakeQuestionRepo,
+                savedStateHandle = savedStateHandle,
+            )
     }
 
     @After
@@ -128,81 +159,84 @@ class QuestionResolveViewModelTest {
     }
 
     @Test
-    fun `init should load discipline and questions correctly`() = runTest(testDispatcher) {
-        testScheduler.advanceUntilIdle()
+    fun `init should load discipline and questions correctly`() =
+        runTest(testDispatcher) {
+            testScheduler.advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertFalse(state.isLoading)
-        assertEquals("Direito Constitucional", state.disciplineName)
-        assertEquals(2, state.questions.size)
-        assertEquals(0, state.currentIndex)
-        assertTrue(fakeQuestionRepo.resetCalled)
-    }
-
-    @Test
-    fun `selectOption should update selectedAnswers map`() = runTest(testDispatcher) {
-        testScheduler.advanceUntilIdle()
-
-        viewModel.selectOption(0)
-        val state = viewModel.uiState.value
-        assertEquals(0, state.selectedAnswers[0])
-    }
+            val state = viewModel.uiState.value
+            assertFalse(state.isLoading)
+            assertEquals("Direito Constitucional", state.disciplineName)
+            assertEquals(2, state.questions.size)
+            assertEquals(0, state.currentIndex)
+            assertTrue(fakeQuestionRepo.resetCalled)
+        }
 
     @Test
-    fun `submitAnswer should verify correct answer and increment score`() = runTest(testDispatcher) {
-        testScheduler.advanceUntilIdle()
+    fun `selectOption should update selectedAnswers map`() =
+        runTest(testDispatcher) {
+            testScheduler.advanceUntilIdle()
 
-        viewModel.selectOption(0) // Option 0 is correct for question 1
-        viewModel.submitAnswer()
-        testScheduler.advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertEquals(1, state.score)
-        assertTrue(state.submittedAnswers.contains(0))
-        assertEquals(101L, fakeQuestionRepo.lastAnsweredQuestionId)
-        assertEquals(0, fakeQuestionRepo.lastAnsweredOption)
-        assertEquals(true, fakeQuestionRepo.lastAnsweredIsCorrect)
-    }
+            viewModel.selectOption(0)
+            val state = viewModel.uiState.value
+            assertEquals(0, state.selectedAnswers[0])
+        }
 
     @Test
-    fun `submitAnswer should handle incorrect answer without incrementing score`() = runTest(testDispatcher) {
-        testScheduler.advanceUntilIdle()
+    fun `submitAnswer should verify correct answer and increment score`() =
+        runTest(testDispatcher) {
+            testScheduler.advanceUntilIdle()
 
-        viewModel.selectOption(1) // Option 1 is wrong for question 1
-        viewModel.submitAnswer()
-        testScheduler.advanceUntilIdle()
+            viewModel.selectOption(0) // Option 0 is correct for question 1
+            viewModel.submitAnswer()
+            testScheduler.advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals(0, state.score)
-        assertTrue(state.submittedAnswers.contains(0))
-        assertEquals(false, fakeQuestionRepo.lastAnsweredIsCorrect)
-    }
+            val state = viewModel.uiState.value
+            assertEquals(1, state.score)
+            assertTrue(state.submittedAnswers.contains(0))
+            assertEquals(101L, fakeQuestionRepo.lastAnsweredQuestionId)
+            assertEquals(0, fakeQuestionRepo.lastAnsweredOption)
+            assertEquals(true, fakeQuestionRepo.lastAnsweredIsCorrect)
+        }
 
     @Test
-    fun `nextQuestion should advance to next question and complete on last question`() = runTest(testDispatcher) {
-        testScheduler.advanceUntilIdle()
+    fun `submitAnswer should handle incorrect answer without incrementing score`() =
+        runTest(testDispatcher) {
+            testScheduler.advanceUntilIdle()
 
-        // Question 1
-        viewModel.selectOption(0)
-        viewModel.submitAnswer()
-        viewModel.nextQuestion()
+            viewModel.selectOption(1) // Option 1 is wrong for question 1
+            viewModel.submitAnswer()
+            testScheduler.advanceUntilIdle()
 
-        var state = viewModel.uiState.value
-        assertEquals(1, state.currentIndex)
-        assertFalse(state.isFinished)
+            val state = viewModel.uiState.value
+            assertEquals(0, state.score)
+            assertTrue(state.submittedAnswers.contains(0))
+            assertEquals(false, fakeQuestionRepo.lastAnsweredIsCorrect)
+        }
 
-        // Question 2
-        viewModel.selectOption(1)
-        viewModel.submitAnswer()
-        viewModel.nextQuestion() // Should finish the mock exam
+    @Test
+    fun `nextQuestion should advance to next question and complete on last question`() =
+        runTest(testDispatcher) {
+            testScheduler.advanceUntilIdle()
 
-        testScheduler.advanceUntilIdle()
+            viewModel.selectOption(0)
+            viewModel.submitAnswer()
+            viewModel.nextQuestion()
 
-        state = viewModel.uiState.value
-        assertTrue(state.isFinished)
-        assertEquals(2, state.score)
-        assertNotNull(fakeQuestionRepo.savedAttempt)
-        assertEquals(2, fakeQuestionRepo.savedAttempt?.score)
-        assertEquals(2, fakeQuestionRepo.savedAttempt?.totalQuestions)
-    }
+            var state = viewModel.uiState.value
+            assertEquals(1, state.currentIndex)
+            assertFalse(state.isFinished)
+
+            viewModel.selectOption(1)
+            viewModel.submitAnswer()
+            viewModel.nextQuestion()
+
+            testScheduler.advanceUntilIdle()
+
+            state = viewModel.uiState.value
+            assertTrue(state.isFinished)
+            assertEquals(2, state.score)
+            assertNotNull(fakeQuestionRepo.savedAttempt)
+            assertEquals(2, fakeQuestionRepo.savedAttempt?.score)
+            assertEquals(2, fakeQuestionRepo.savedAttempt?.totalQuestions)
+        }
 }
