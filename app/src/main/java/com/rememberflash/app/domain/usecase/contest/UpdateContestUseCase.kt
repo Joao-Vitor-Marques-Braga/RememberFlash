@@ -1,7 +1,7 @@
 package com.rememberflash.app.domain.usecase.contest
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
@@ -23,7 +23,7 @@ class UpdateContestUseCase @Inject constructor(
     private val disciplineRepository: DisciplineRepository,
     private val topicRepository: TopicRepository,
     private val geminiClient: GeminiClient,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val gson = Gson()
 
@@ -66,11 +66,11 @@ class UpdateContestUseCase @Inject constructor(
         // Caso haja PDF novo ou alteração de cargo com PDF, realiza a extração
         return try {
             onProgress("Lendo e extraindo texto dos arquivos PDF...")
-            val pdfUris = pdfUriStr!!.split("|").filter { it.isNotBlank() }
+            val pdfUris = pdfUriStr.split("|").filter { it.isNotBlank() }
             val combinedTextBuilder = StringBuilder()
             
             pdfUris.forEach { uriStr ->
-                val pdfUri = Uri.parse(uriStr)
+                val pdfUri = uriStr.toUri()
                 val extracted = LocalPdfExtractor.extractText(context, pdfUri)
                 if (extracted.isNotBlank()) {
                     combinedTextBuilder.append(extracted).append("\n\n")

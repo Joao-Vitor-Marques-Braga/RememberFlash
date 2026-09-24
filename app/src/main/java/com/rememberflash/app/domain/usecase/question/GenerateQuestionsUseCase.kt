@@ -70,11 +70,10 @@ class GenerateQuestionsUseCase @Inject constructor(
                 theme = effectiveTheme
             )
 
-            // 3. Desserialização e Validação do Contrato (A1)
             val type = object : TypeToken<Map<String, List<RawQuestion>>>() {}.type
             val data: Map<String, List<RawQuestion>> = try {
                 gson.fromJson(jsonResponse, type)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return Result.error("Não foi possível estruturar as questões corretamente. Por favor, tente novamente.")
             }
 

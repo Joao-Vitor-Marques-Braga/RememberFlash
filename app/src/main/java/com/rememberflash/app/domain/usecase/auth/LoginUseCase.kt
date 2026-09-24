@@ -8,16 +8,13 @@ import javax.inject.Inject
 class LoginUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
-    /**
-     * Autentica as credenciais do usuário e persiste a sessão local com token criptográfico UUID via SecurePreferencesManager.
-     */
+
     suspend operator fun invoke(email: String, passwordKey: String): Result<Unit> {
         if (email.isBlank() || passwordKey.isBlank()) {
             return Result.error("E-mail e senha são obrigatórios")
         }
         return try {
-            val authResult = authRepository.authenticateUser(email, passwordKey)
-            when (authResult) {
+            when (val authResult = authRepository.authenticateUser(email, passwordKey)) {
                 is Result.Success -> {
                     val cryptoToken = UUID.randomUUID().toString()
                     authRepository.saveSession(token = cryptoToken, user = authResult.data)

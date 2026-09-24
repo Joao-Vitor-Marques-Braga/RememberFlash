@@ -1,7 +1,7 @@
 package com.rememberflash.app.domain.usecase.contest
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
@@ -22,7 +22,7 @@ class CreateContestUseCase @Inject constructor(
     private val disciplineRepository: DisciplineRepository,
     private val topicRepository: TopicRepository,
     private val geminiClient: GeminiClient,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val gson = Gson()
 
@@ -60,12 +60,11 @@ class CreateContestUseCase @Inject constructor(
 
         return try {
             onProgress("Lendo e extraindo texto dos arquivos PDF...")
-            // 1. Extração de texto de todos os PDFs anexados
             val pdfUris = pdfUriStr.split("|").filter { it.isNotBlank() }
             val combinedTextBuilder = StringBuilder()
             
             pdfUris.forEach { uriStr ->
-                val pdfUri = Uri.parse(uriStr)
+                val pdfUri = uriStr.toUri()
                 val extracted = LocalPdfExtractor.extractText(context, pdfUri)
                 if (extracted.isNotBlank()) {
                     combinedTextBuilder.append(extracted).append("\n\n")
@@ -175,7 +174,7 @@ class CreateContestUseCase @Inject constructor(
         } catch (e: Throwable) {
             android.util.Log.e("CreateContestUseCase", "Erro ao processar edital", e)
             val errorMessage = e.message?.ifBlank { null } ?: "Falha ao processar o edital com a Inteligência Artificial."
-            Result.error(errorMessage, if (e is Exception) e else Exception(e))
+            Result.error(errorMessage, e as? Exception ?: Exception(e))
         }
     }
 

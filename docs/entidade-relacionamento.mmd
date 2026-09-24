@@ -1,0 +1,179 @@
+erDiagram
+    USUARIO {
+        string id_usuario PK
+        string nome
+        string email
+        string cpf
+        string senha_hash
+        datetime criado_em
+    }
+
+    PREFERENCIA_IA {
+        int id_preferencia PK
+        string id_usuario FK
+        string nivel_dificuldade_questoes
+        string rigor_correcao_redacao
+        string tom_tutor_interativo
+        string chave_gemini_criptografada
+    }
+
+    CONCURSO_EDITAL {
+        int id_concurso PK
+        string id_usuario FK
+        string titulo_concurso
+        string descricao
+        string banca_examinadora
+        string tipo_questao
+        string url_anexo_edital
+        date data_prova
+        string local_prova
+        string caneta_permitida
+        string itens_permitidos
+        string itens_proibidos
+        boolean ativo
+        boolean sincronizado
+        datetime criado_em
+        datetime atualizado_em
+    }
+
+    DISCIPLINA {
+        int id_disciplina PK
+        int id_concurso FK
+        string nome_disciplina
+        float peso
+        int total_topicos
+        boolean ativa
+        boolean sincronizada
+        datetime criada_em
+    }
+
+    TOPICO_EDITAL {
+        int id_topico PK
+        int id_disciplina FK
+        int id_concurso FK
+        string nome_topico
+        string descricao
+        int ordem_indice
+        boolean sincronizado
+        datetime criado_em
+    }
+
+    FLASHCARD {
+        int id_flashcard PK
+        int id_disciplina FK
+        int id_topico FK
+        string frente_pergunta
+        string verso_resposta
+        string origem_conteudo
+        date proxima_revisao
+        float fator_facilidade_sm2
+        int intervalo_dias
+        int repeticoes
+        int tokens_gastos
+        boolean sincronizado
+        datetime criado_em
+    }
+
+    QUESTAO {
+        int id_questao PK
+        int id_disciplina FK
+        int id_topico FK
+        string tipo_questao
+        text enunciado
+        text alternativas_json
+        int resposta_correta_indice
+        text justificativa_ia
+        string origem_questao
+        int tokens_gastos
+        boolean sincronizada
+        datetime criada_em
+    }
+
+    HISTORICO_RESPOSTA_QUESTAO {
+        int id_resposta PK
+        string id_usuario FK
+        int id_questao FK
+        int alternativa_escolhida
+        boolean acertou
+        datetime data_resposta
+    }
+
+    REDACAO {
+        int id_redacao PK
+        string id_usuario FK
+        int id_concurso FK
+        string tema_redacao
+        string uri_foto_manuscrita
+        text texto_extraido_ocr
+        float nota_atribuida
+        text feedback_ia_json
+        int tokens_gastos
+        datetime data_envio
+    }
+
+    CRONOGRAMA_ESTUDO {
+        int id_cronograma PK
+        int id_concurso FK
+        date data_prova
+        float horas_diarias_disponiveis
+        int dias_descanso_semanal
+        int tokens_gastos
+        datetime recalculado_em
+        boolean sincronizado
+        datetime criado_em
+    }
+
+    META_DIARIA_ESTUDO {
+        int id_meta_diaria PK
+        int id_cronograma FK
+        int id_disciplina FK
+        date data_agendada
+        int minutos_meta
+        int minutos_cumpridos
+        int flashcards_meta
+        int flashcards_concluidos
+        boolean sincronizada
+    }
+
+    TENTATIVA_SIMULADO {
+        int id_simulado PK
+        string id_usuario FK
+        int id_concurso FK
+        int id_disciplina FK
+        int pontuacao_acertos
+        int total_questoes
+        text respostas_usuario_json
+        text tempos_por_questao_json
+        datetime realizado_em
+    }
+
+    %% Relacionamentos do USUARIO
+    USUARIO ||--|| PREFERENCIA_IA : "define_configuracoes"
+    USUARIO ||--o{ CONCURSO_EDITAL : "cadastra"
+    USUARIO ||--o{ REDACAO : "submete"
+    USUARIO ||--o{ HISTORICO_RESPOSTA_QUESTAO : "gera_historico"
+    USUARIO ||--o{ TENTATIVA_SIMULADO : "executa"
+
+    %% Relacionamentos do CONCURSO_EDITAL
+    CONCURSO_EDITAL ||--o{ DISCIPLINA : "possui"
+    CONCURSO_EDITAL ||--o{ TOPICO_EDITAL : "estrutura"
+    CONCURSO_EDITAL ||--o{ REDACAO : "vincula"
+    CONCURSO_EDITAL ||--o{ CRONOGRAMA_ESTUDO : "planeja"
+    CONCURSO_EDITAL |o--o{ TENTATIVA_SIMULADO : "avalia"
+
+    %% Relacionamentos da DISCIPLINA
+    DISCIPLINA ||--o{ TOPICO_EDITAL : "divide_se_em"
+    DISCIPLINA ||--o{ FLASHCARD : "agrupa"
+    DISCIPLINA ||--o{ QUESTAO : "agrupa"
+    DISCIPLINA ||--o{ META_DIARIA_ESTUDO : "alocada_em"
+    DISCIPLINA |o--o{ TENTATIVA_SIMULADO : "filtra"
+
+    %% Relacionamentos do TOPICO_EDITAL
+    TOPICO_EDITAL |o--o{ FLASHCARD : "classifica"
+    TOPICO_EDITAL |o--o{ QUESTAO : "classifica"
+
+    %% Relacionamento do CRONOGRAMA e METAS
+    CRONOGRAMA_ESTUDO ||--o{ META_DIARIA_ESTUDO : "distribui"
+
+    %% Relacionamento da QUESTAO com o Desempenho
+    QUESTAO ||--o{ HISTORICO_RESPOSTA_QUESTAO : "respondida_em"
