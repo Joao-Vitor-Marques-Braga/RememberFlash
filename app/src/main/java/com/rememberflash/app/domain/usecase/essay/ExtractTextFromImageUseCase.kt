@@ -23,8 +23,8 @@ class ExtractTextFromImageUseCase @Inject constructor(
                 if (aiTranscribedText.isNotBlank()) {
                     return Result.success(aiTranscribedText.trim())
                 }
-            } catch (e: Exception) {
-                android.util.Log.w("ExtractTextUseCase", "Falha na transcrição por IA, recorrendo ao OCR local", e)
+            } catch (_: Exception) {
+                // Fallback para OCR local em caso de falha na IA
             }
         }
 

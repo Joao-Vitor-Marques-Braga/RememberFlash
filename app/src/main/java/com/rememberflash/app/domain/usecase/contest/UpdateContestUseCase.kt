@@ -90,7 +90,6 @@ class UpdateContestUseCase @Inject constructor(
             val parsedEdital: ParsedEdital = try {
                 gson.fromJson(cleanedJson, type)
             } catch (e: Exception) {
-                android.util.Log.e("UpdateContestUseCase", "Erro ao deserializar JSON da IA. Resposta: $jsonResponse", e)
                 return Result.error("Falha ao analisar a resposta da IA.")
             }
 
@@ -175,7 +174,6 @@ class UpdateContestUseCase @Inject constructor(
             }
             updateResult
         } catch (e: Exception) {
-            android.util.Log.e("UpdateContestUseCase", "Erro ao processar e atualizar edital", e)
             val errorMessage = e.message?.ifBlank { null } ?: "Falha ao processar e atualizar o edital com a Inteligência Artificial."
             Result.error(errorMessage, e)
         }

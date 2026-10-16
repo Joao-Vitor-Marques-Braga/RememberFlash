@@ -86,7 +86,6 @@ class CreateContestUseCase @Inject constructor(
             val parsedEdital: ParsedEdital = try {
                 gson.fromJson(cleanedJson, type)
             } catch (e: Exception) {
-                android.util.Log.e("CreateContestUseCase", "Erro ao deserializar JSON da IA. Resposta: $jsonResponse", e)
                 return Result.error("Falha ao analisar a resposta da IA. A resposta não estava em formato JSON válido.\n\nResposta da IA:\n$jsonResponse\n\nErro:\n${e.localizedMessage}")
             }
 
@@ -172,7 +171,6 @@ class CreateContestUseCase @Inject constructor(
 
             contestIdResult
         } catch (e: Throwable) {
-            android.util.Log.e("CreateContestUseCase", "Erro ao processar edital", e)
             val errorMessage = e.message?.ifBlank { null } ?: "Falha ao processar o edital com a Inteligência Artificial."
             Result.error(errorMessage, e as? Exception ?: Exception(e))
         }

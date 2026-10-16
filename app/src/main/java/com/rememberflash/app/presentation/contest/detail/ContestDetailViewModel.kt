@@ -11,7 +11,7 @@ import com.rememberflash.app.domain.usecase.discipline.DeleteDisciplineUseCase
 import com.rememberflash.app.domain.usecase.discipline.GetDisciplinesByContestUseCase
 import com.rememberflash.app.domain.usecase.discipline.UpdateDisciplineUseCase
 import com.rememberflash.app.domain.usecase.question.GenerateContestMockExamUseCase
-import com.rememberflash.app.domain.usecase.contest.DeleteContestUseCase
+import com.rememberflash.app.domain.usecase.contest.SoftDeleteContestUseCase
 import com.rememberflash.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +30,7 @@ class ContestDetailViewModel @Inject constructor(
     private val deleteDisciplineUseCase: DeleteDisciplineUseCase,
     private val generateContestMockExamUseCase: GenerateContestMockExamUseCase,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
-    private val deleteContestUseCase: DeleteContestUseCase,
+    private val softDeleteContestUseCase: SoftDeleteContestUseCase,
     private val syncManager: SyncManager
 ) : ViewModel() {
 
@@ -218,8 +218,7 @@ class ContestDetailViewModel @Inject constructor(
     fun deleteContest(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            syncManager.deleteContestRemote(contestId)
-            when (val result = deleteContestUseCase(contestId)) {
+            when (val result = softDeleteContestUseCase(contestId)) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     onSuccess()

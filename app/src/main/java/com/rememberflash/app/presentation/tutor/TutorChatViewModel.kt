@@ -5,10 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rememberflash.app.data.local.preferences.SecurePreferencesManager
 import com.rememberflash.app.data.remote.gemini.GeminiClient
-import com.rememberflash.app.data.remote.gemini.PromptTemplates
 import com.rememberflash.app.domain.common.Result
+import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.EssayRepository
 import com.rememberflash.app.domain.repository.QuestionRepository
+import com.rememberflash.app.domain.usecase.tutor.AskTutorUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,11 +21,12 @@ import javax.inject.Inject
 class TutorChatViewModel @Inject constructor(
     private val questionRepository: QuestionRepository,
     private val essayRepository: EssayRepository,
-    private val contestRepository: com.rememberflash.app.domain.repository.ContestRepository,
+    private val contestRepository: ContestRepository,
     private val geminiClient: GeminiClient,
     private val preferencesManager: SecurePreferencesManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val askTutorUseCase: AskTutorUseCase = AskTutorUseCase(geminiClient)
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TutorChatUiState())
@@ -163,15 +165,13 @@ class TutorChatViewModel @Inject constructor(
                     } else null
                 }
 
-                val prompt = PromptTemplates.buildTutorChatPrompt(
+                val reply = askTutorUseCase(
                     contextType = type,
                     contextDetails = activeContextDetails,
                     tone = tone,
                     history = history,
                     latestMessage = messageText
                 )
-
-                val reply = geminiClient.generateContent(prompt)
                 
                 _uiState.value = _uiState.value.copy(
                     messages = _uiState.value.messages + TutorMessage(text = reply, isUser = false),

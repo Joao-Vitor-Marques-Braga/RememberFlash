@@ -1,6 +1,5 @@
 package com.rememberflash.app.domain.usecase.schedule
 
-import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
@@ -13,7 +12,6 @@ import com.rememberflash.app.domain.model.StudySchedule
 import com.rememberflash.app.domain.repository.ContestRepository
 import com.rememberflash.app.domain.repository.DisciplineRepository
 import com.rememberflash.app.domain.repository.ScheduleRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Calendar

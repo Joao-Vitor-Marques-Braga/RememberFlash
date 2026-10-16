@@ -70,8 +70,8 @@ class GenerateContestMockExamUseCase @Inject constructor(
                             if (extracted.isNotBlank()) {
                                 combinedTextBuilder.append(extracted).append("\n\n")
                             }
-                        } catch (e: Exception) {
-                            android.util.Log.e("GenerateContestMockExamUseCase", "Falha ao ler PDF do edital: $uriString", e)
+                        } catch (_: Exception) {
+                            // Ignora PDF inválido ou com erro de leitura
                         }
                     }
                 }
