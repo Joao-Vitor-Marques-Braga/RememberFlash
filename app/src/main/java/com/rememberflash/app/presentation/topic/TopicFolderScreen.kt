@@ -3,15 +3,19 @@ package com.rememberflash.app.presentation.topic
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +28,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -42,7 +49,7 @@ fun TopicFolderScreen(
     viewModel: TopicFolderViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToResolveQuestions: (Long, Long) -> Unit, // disciplineId, topicId
-    onNavigateToStudyDeck: (Long) -> Unit // disciplineId
+    onNavigateToStudyDeck: (Long) -> Unit = {} // disciplineId
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
@@ -59,6 +66,7 @@ fun TopicFolderScreen(
     var backText by remember { mutableStateOf("") }
     var flashcardFormError by remember { mutableStateOf<String?>(null) }
     var cardToDelete by remember { mutableStateOf<Flashcard?>(null) }
+    var previewFlashcard by remember { mutableStateOf<Flashcard?>(null) }
 
     // PDF Import State
     var showPdfImportDialog by remember { mutableStateOf(false) }
@@ -107,7 +115,7 @@ fun TopicFolderScreen(
         }
     }
 
-    LaunchedEffect(showFlashcardFormDialog) {
+    LaunchedEffect(editingFlashcard, showFlashcardFormDialog) {
         if (showFlashcardFormDialog) {
             frontText = editingFlashcard?.front ?: ""
             backText = editingFlashcard?.back ?: ""
@@ -230,6 +238,9 @@ fun TopicFolderScreen(
                                     Button(
                                         onClick = {
                                             editingFlashcard = null
+                                            frontText = ""
+                                            backText = ""
+                                            flashcardFormError = null
                                             showFlashcardFormDialog = true
                                         },
                                         modifier = Modifier.weight(1f),
@@ -252,22 +263,6 @@ fun TopicFolderScreen(
                                         Icon(Icons.Default.AttachFile, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Via PDF")
-                                    }
-
-                                    if (uiState.flashcards.isNotEmpty()) {
-                                        Button(
-                                            onClick = { onNavigateToStudyDeck(viewModel.disciplineId) },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                            ),
-                                            modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(12.dp)
-                                        ) {
-                                            Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Estudar")
-                                        }
                                     }
                                 }
 
@@ -307,8 +302,14 @@ fun TopicFolderScreen(
                                         items(uiState.flashcards, key = { it.id }) { card ->
                                             TopicFlashcardItemCard(
                                                 flashcard = card,
+                                                onClick = {
+                                                    previewFlashcard = card
+                                                },
                                                 onEdit = {
                                                     editingFlashcard = card
+                                                    frontText = card.front
+                                                    backText = card.back
+                                                    flashcardFormError = null
                                                     showFlashcardFormDialog = true
                                                 },
                                                 onDelete = {
@@ -727,21 +728,36 @@ fun TopicFolderScreen(
             }
         )
     }
+
+    // Modal de Visualização com Efeito de Giro 3D (Flip Card)
+    if (previewFlashcard != null) {
+        FlashcardPreviewDialog(
+            flashcard = previewFlashcard!!,
+            onDismiss = { previewFlashcard = null },
+            onEdit = { card ->
+                previewFlashcard = null
+                editingFlashcard = card
+                frontText = card.front
+                backText = card.back
+                flashcardFormError = null
+                showFlashcardFormDialog = true
+            }
+        )
+    }
 }
 
 @Composable
 fun TopicFlashcardItemCard(
     flashcard: Flashcard,
+    onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    var isFlipped by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { isFlipped = !isFlipped },
-        shape = RoundedCornerShape(12.dp),
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -751,13 +767,13 @@ fun TopicFlashcardItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = if (isFlipped) AccentOrange.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = if (isFlipped) "VERSO (RESPOSTA)" else "FRENTE (PERGUNTA)",
+                        text = "FRENTE (PERGUNTA)",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (isFlipped) AccentOrange else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -775,18 +791,275 @@ fun TopicFlashcardItemCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (isFlipped) flashcard.back else flashcard.front,
+                text = flashcard.front,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Text(
-                text = "Toque para virar o card ↺",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlipCameraAndroid,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Toque para abrir e virar o card ↺",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FlashcardPreviewDialog(
+    flashcard: Flashcard,
+    onDismiss: () -> Unit,
+    onEdit: (Flashcard) -> Unit
+) {
+    var isFlipped by remember { mutableStateOf(false) }
+    val rotation by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "cardFlipAnimation"
+    )
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Container do Card com Efeito de Giro 3D
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 340.dp, max = 500.dp)
+                    .graphicsLayer {
+                        rotationY = rotation
+                        cameraDistance = 14f * density
+                    }
+                    .clickable { isFlipped = !isFlipped },
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                if (rotation <= 90f) {
+                    // Frente do Flashcard
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "FRENTE (PERGUNTA)",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { onEdit(flashcard) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Editar",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = onDismiss,
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Fechar",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                Text(
+                                    text = flashcard.front,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FlipCameraAndroid,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Toque no card para ver a resposta ↺",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Verso do Flashcard (espelhado horizontalmente no Y para compensar os 180 graus)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                rotationY = 180f
+                            }
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    color = AccentOrange.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "VERSO (RESPOSTA)",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = AccentOrange,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { onEdit(flashcard) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Editar",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = onDismiss,
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Fechar",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                Text(
+                                    text = flashcard.back,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = AccentOrange.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FlipCameraAndroid,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = AccentOrange
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Toque no card para voltar à pergunta ↺",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = AccentOrange
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

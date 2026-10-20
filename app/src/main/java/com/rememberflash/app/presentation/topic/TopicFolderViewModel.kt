@@ -147,6 +147,7 @@ class TopicFolderViewModel @Inject constructor(
 
     fun deleteFlashcard(cardId: Long) {
         viewModelScope.launch {
+            syncManager.deleteFlashcardRemote(cardId)
             when (val res = flashcardRepository.delete(cardId)) {
                 is Result.Success -> {
                     syncManager.triggerSync()
