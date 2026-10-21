@@ -18,4 +18,8 @@ interface ScheduleRepository {
         flashcardsCompleted: Int
     ): Result<Unit>
     suspend fun clearDailyGoalsBySchedule(scheduleId: Long): Result<Unit>
+    suspend fun recordQuestionsSolved(
+        disciplineId: Long,
+        questionsCount: Int
+    ): Result<Unit> = Result.success(Unit)
 }

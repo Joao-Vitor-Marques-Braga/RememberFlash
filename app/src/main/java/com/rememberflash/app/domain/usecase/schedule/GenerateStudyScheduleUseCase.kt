@@ -227,7 +227,7 @@ class GenerateStudyScheduleUseCase @Inject constructor(
                                 disciplineId = matchedDiscipline.id,
                                 targetMinutes = session.minutes,
                                 completedMinutes = 0,
-                                flashcardsTarget = (session.minutes / 2).coerceAtLeast(5),
+                                flashcardsTarget = (session.minutes / 6).coerceIn(5, 15),
                                 flashcardsCompleted = 0
                             )
                         )
@@ -272,7 +272,7 @@ class GenerateStudyScheduleUseCase @Inject constructor(
                             disciplineId = matchedDiscipline.id,
                             targetMinutes = session.minutes,
                             completedMinutes = 0,
-                            flashcardsTarget = (session.minutes / 2).coerceAtLeast(5),
+                            flashcardsTarget = (session.minutes / 6).coerceIn(5, 15),
                             flashcardsCompleted = 0
                         )
                     )
@@ -314,7 +314,7 @@ class GenerateStudyScheduleUseCase @Inject constructor(
                                 disciplineId = matchedDiscipline.id,
                                 targetMinutes = session.minutes,
                                 completedMinutes = 0,
-                                flashcardsTarget = (session.minutes / 2).coerceAtLeast(5),
+                                flashcardsTarget = (session.minutes / 6).coerceIn(5, 15),
                                 flashcardsCompleted = 0
                             )
                         )

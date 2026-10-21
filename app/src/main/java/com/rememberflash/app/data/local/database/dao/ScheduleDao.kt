@@ -44,6 +44,22 @@ interface ScheduleDao {
         flashcardsCompleted: Int
     )
 
+    @Query(
+        """
+        UPDATE daily_goals SET 
+            completed_minutes = completed_minutes + :questionsCount,
+            is_synced = 0
+        WHERE discipline_id = :disciplineId 
+          AND date >= :startOfDay AND date <= :endOfDay
+        """
+    )
+    suspend fun incrementQuestionsForDisciplineToday(
+        disciplineId: Long,
+        questionsCount: Int,
+        startOfDay: Long,
+        endOfDay: Long
+    )
+
     @Query("DELETE FROM daily_goals WHERE schedule_id = :scheduleId")
     suspend fun clearDailyGoalsBySchedule(scheduleId: Long)
 

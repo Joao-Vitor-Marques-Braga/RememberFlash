@@ -102,7 +102,7 @@ class RecalculateDynamicScheduleUseCase @Inject constructor(
             for ((discipline, weight) in adjustedWeights) {
                 val proportion = weight / totalWeight
                 val targetMinutes = (availableMinutesPerDay * proportion).toInt().coerceAtLeast(10)
-                val flashcardsTarget = (targetMinutes / 5).coerceAtLeast(2) // ~5 min por flashcard
+                val flashcardsTarget = (targetMinutes / 6).coerceIn(5, 15)
 
                 goals.add(
                     DailyGoal(

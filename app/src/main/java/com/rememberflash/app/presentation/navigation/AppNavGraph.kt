@@ -147,6 +147,9 @@ fun AppNavGraph(
                 },
                 onNavigateToProfile = {
                     navController.navigate(Routes.PROFILE)
+                },
+                onNavigateToDiscipline = { disciplineId ->
+                    navController.navigate(Routes.flashcardDeck(disciplineId))
                 }
             )
         }
@@ -345,6 +348,9 @@ fun AppNavGraph(
             ScheduleScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToDiscipline = { disciplineId ->
+                    navController.navigate(Routes.flashcardDeck(disciplineId))
                 }
             )
         }

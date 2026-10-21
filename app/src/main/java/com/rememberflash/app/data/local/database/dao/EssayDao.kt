@@ -34,4 +34,7 @@ interface EssayDao {
 
     @Query("SELECT * FROM essays WHERE contest_id = :contestId ORDER BY created_at DESC")
     fun getByContest(contestId: Long): Flow<List<EssayEntity>>
+
+    @Query("DELETE FROM essays WHERE id = :essayId")
+    suspend fun delete(essayId: Long)
 }

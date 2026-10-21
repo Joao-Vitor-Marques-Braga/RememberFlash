@@ -19,7 +19,8 @@ class QuestionResolveViewModel @Inject constructor(
     private val getDisciplineByIdUseCase: GetDisciplineByIdUseCase,
     private val getQuestionsByDisciplineUseCase: GetQuestionsByDisciplineUseCase,
     private val questionRepository: com.rememberflash.app.domain.repository.QuestionRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val scheduleRepository: com.rememberflash.app.domain.repository.ScheduleRepository? = null
 ) : ViewModel() {
 
     // [ITEM 1.8 — FIX] Instância única reutilizada em vez de `Gson()` criada a cada
@@ -29,14 +30,11 @@ class QuestionResolveViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QuestionResolveUiState())
     val uiState: StateFlow<QuestionResolveUiState> = _uiState.asStateFlow()
 
-    private val disciplineId: Long = checkNotNull(
-        savedStateHandle.get<Long>("disciplineId") ?: savedStateHandle.get<String>("disciplineId")?.toLongOrNull()
-    ) {
+    private val disciplineId: Long = checkNotNull(savedStateHandle.getLongOrNull("disciplineId")) {
         "disciplineId é obrigatório"
     }
 
-    private val topicId: Long? = savedStateHandle.get<Long>("topicId")
-        ?: savedStateHandle.get<String>("topicId")?.toLongOrNull()
+    private val topicId: Long? = savedStateHandle.getLongOrNull("topicId")
 
     init {
         loadData()
@@ -113,6 +111,7 @@ class QuestionResolveViewModel @Inject constructor(
                 timesJson = timesJsonString
             )
             questionRepository.saveMockExamAttempt(attempt)
+            scheduleRepository?.recordQuestionsSolved(disciplineId, totalQuestions)
         }
     }
 
@@ -193,3 +192,14 @@ class QuestionResolveViewModel @Inject constructor(
         saveAttempt()
     }
 }
+
+private fun SavedStateHandle.getLongOrNull(key: String): Long? {
+    val value = this.get<Any>(key) ?: return null
+    return when (value) {
+        is Long -> value
+        is Number -> value.toLong()
+        is String -> value.toLongOrNull()
+        else -> null
+    }
+}
+

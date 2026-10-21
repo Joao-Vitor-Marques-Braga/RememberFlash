@@ -90,6 +90,11 @@ class EssayTest {
 
         override suspend fun getById(essayId: Long): Result<Essay> =
             Result.success(essays.first { it.id == essayId })
+
+        override suspend fun delete(essayId: Long): Result<Unit> {
+            essays.removeAll { it.id == essayId }
+            return Result.success(Unit)
+        }
     }
 
     @Before

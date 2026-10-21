@@ -69,4 +69,13 @@ class EssayRepositoryImpl @Inject constructor(
             Result.error("Erro ao buscar redação: ${e.localizedMessage}", e)
         }
     }
+
+    override suspend fun delete(essayId: Long): Result<Unit> {
+        return try {
+            essayDao.delete(essayId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao excluir redação: ${e.localizedMessage}", e)
+        }
+    }
 }

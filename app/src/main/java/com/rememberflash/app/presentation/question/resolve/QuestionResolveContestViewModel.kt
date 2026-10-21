@@ -24,7 +24,8 @@ class QuestionResolveContestViewModel @Inject constructor(
     private val questionRepository: QuestionRepository,
     private val proposeScheduleRecalculationUseCase: com.rememberflash.app.domain.usecase.schedule.ProposeScheduleRecalculationUseCase,
     private val acceptProposedScheduleUseCase: com.rememberflash.app.domain.usecase.schedule.AcceptProposedScheduleUseCase,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val scheduleRepository: com.rememberflash.app.domain.repository.ScheduleRepository? = null
 ) : ViewModel() {
 
     // [ITEM 1.8 — FIX] Instância única reutilizada em vez de `Gson()` criada a cada
@@ -139,6 +140,11 @@ class QuestionResolveContestViewModel @Inject constructor(
                         currentStats.second + 1
                     )
                 }
+            }
+
+            // Atualiza o progresso das metas diárias de cada disciplina resolvida
+            performance.forEach { (dispId, stats) ->
+                scheduleRepository?.recordQuestionsSolved(dispId, stats.second)
             }
 
             // Invoca a geração da proposta de cronograma baseado das dificuldades

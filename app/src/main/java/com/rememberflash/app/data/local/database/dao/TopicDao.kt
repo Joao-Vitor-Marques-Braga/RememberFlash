@@ -52,6 +52,9 @@ interface TopicDao {
     @Query("SELECT * FROM topics")
     suspend fun getAll(): List<TopicEntity>
 
+    @Query("SELECT * FROM topics ORDER BY discipline_id ASC, order_index ASC, id ASC")
+    fun getAllTopicsFlow(): Flow<List<TopicEntity>>
+
     @Query("UPDATE topics SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markTopicsAsSynced(ids: List<Long>)
 }

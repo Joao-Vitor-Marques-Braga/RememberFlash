@@ -239,4 +239,29 @@ class QuestionResolveViewModelTest {
             assertEquals(2, fakeQuestionRepo.savedAttempt?.score)
             assertEquals(2, fakeQuestionRepo.savedAttempt?.totalQuestions)
         }
+
+    @Test
+    fun `init should handle string arguments from SavedStateHandle without ClassCastException`() =
+        runTest(testDispatcher) {
+            val getDisciplineByIdUseCase = GetDisciplineByIdUseCase(fakeDisciplineRepo)
+            val getQuestionsByDisciplineUseCase = GetQuestionsByDisciplineUseCase(fakeQuestionRepo)
+            // Simula exatamente o que o Jetpack Navigation Compose passa via SavedStateHandle
+            val savedStateHandleWithStringArgs = SavedStateHandle(
+                mapOf(
+                    "disciplineId" to 10L,
+                    "topicId" to "105"
+                )
+            )
+
+            val topicVm = QuestionResolveViewModel(
+                getDisciplineByIdUseCase = getDisciplineByIdUseCase,
+                getQuestionsByDisciplineUseCase = getQuestionsByDisciplineUseCase,
+                questionRepository = fakeQuestionRepo,
+                savedStateHandle = savedStateHandleWithStringArgs,
+            )
+
+            testScheduler.advanceUntilIdle()
+            val state = topicVm.uiState.value
+            assertFalse(state.isLoading)
+        }
 }

@@ -53,7 +53,8 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToEssayCapture: () -> Unit,
     onNavigateToEssayResult: (Long) -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToDiscipline: (Long) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
@@ -107,7 +108,8 @@ fun HomeScreen(
                 )
                 HomeTab.ESSAYS -> EssaysTabContent(
                     essays = uiState.essays,
-                    onNavigateToEssayResult = onNavigateToEssayResult
+                    onNavigateToEssayResult = onNavigateToEssayResult,
+                    onDeleteEssay = viewModel::deleteEssay
                 )
                 HomeTab.PERFORMANCE -> PerformanceTabContent(
                     uiState = uiState,
@@ -115,7 +117,8 @@ fun HomeScreen(
                 )
                 HomeTab.SCHEDULE -> ScheduleTabContent(
                     uiState = uiState,
-                    onUpdateGoalProgress = viewModel::updateGoalProgress
+                    onUpdateGoalProgress = viewModel::updateGoalProgress,
+                    onNavigateToDiscipline = onNavigateToDiscipline
                 )
             }
         }

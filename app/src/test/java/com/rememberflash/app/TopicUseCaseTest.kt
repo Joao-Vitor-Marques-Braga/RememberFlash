@@ -84,6 +84,10 @@ class TopicUseCaseTest {
             return flowState.map { list -> list.filter { it.contestId == contestId } }
         }
 
+        override fun getAllTopicsFlow(): Flow<List<Topic>> {
+            return flowState
+        }
+
         override suspend fun getById(topicId: Long): Result<Topic> {
             val item = topics.find { it.id == topicId }
             return if (item != null) Result.success(item) else Result.error("Não encontrado")

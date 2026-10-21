@@ -24,14 +24,14 @@ object DailyGoalsProgressCalculator {
         val todayStart = referenceTimeMillis.startOfDayMillis()
         val todayGoals = allGoals.filter { it.date.startOfDayMillis() == todayStart }
 
-        val totalMinutes = todayGoals.sumOf { it.targetMinutes }
-        val completedMinutes = todayGoals.sumOf { it.completedMinutes }
-        val totalCards = todayGoals.sumOf { it.flashcardsTarget }
+        val totalQuestions = todayGoals.sumOf { maxOf(15, it.targetMinutes / 2) }
+        val completedQuestions = todayGoals.sumOf { it.completedMinutes }
+        val totalCards = todayGoals.sumOf { if (it.flashcardsTarget > 15) 10 else it.flashcardsTarget.coerceAtLeast(5) }
         val completedCards = todayGoals.sumOf { it.flashcardsCompleted }
 
         val progress = ratioOf(
-            part = completedMinutes + completedCards,
-            total = totalMinutes + totalCards
+            part = completedQuestions + completedCards,
+            total = totalQuestions + totalCards
         )
 
         return DailyGoalsSummary(todayGoals = todayGoals, progress = progress)

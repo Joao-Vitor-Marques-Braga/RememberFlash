@@ -88,6 +88,33 @@ class ScheduleRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun recordQuestionsSolved(
+        disciplineId: Long,
+        questionsCount: Int
+    ): Result<Unit> {
+        return try {
+            val now = System.currentTimeMillis()
+            val cal = java.util.Calendar.getInstance().apply {
+                timeInMillis = now
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            val startOfDay = cal.timeInMillis
+            val endOfDay = startOfDay + 24L * 60 * 60 * 1000 - 1
+            scheduleDao.incrementQuestionsForDisciplineToday(
+                disciplineId = disciplineId,
+                questionsCount = questionsCount,
+                startOfDay = startOfDay,
+                endOfDay = endOfDay
+            )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.error("Erro ao registrar questões: ${e.localizedMessage}", e)
+        }
+    }
+
     // Mappers locais (Schedule/DailyGoal — mantidos aqui por simplicidade)
 
     private fun StudySchedule.toEntity() = ScheduleEntity(

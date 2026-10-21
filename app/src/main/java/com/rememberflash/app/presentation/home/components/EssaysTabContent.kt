@@ -41,12 +41,18 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+
 @Composable
 fun EssaysTabContent(
     essays: List<Essay>,
-    onNavigateToEssayResult: (Long) -> Unit
+    onNavigateToEssayResult: (Long) -> Unit,
+    onDeleteEssay: (Long) -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var essayToDelete by remember { mutableStateOf<Essay?>(null) }
 
     val filteredEssays = remember(searchQuery, essays) {
         if (searchQuery.isBlank()) {
@@ -59,6 +65,32 @@ fun EssaysTabContent(
                 (essay.extractedText?.lowercase()?.contains(query) == true)
             }
         }
+    }
+
+    if (essayToDelete != null) {
+        val target = essayToDelete!!
+        AlertDialog(
+            onDismissRequest = { essayToDelete = null },
+            title = { Text("Excluir Redação") },
+            text = {
+                Text("Deseja realmente excluir a redação \"${target.title.ifBlank { target.theme }}\"? Esta ação não poderá ser desfeita.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteEssay(target.id)
+                        essayToDelete = null
+                    }
+                ) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { essayToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -134,7 +166,11 @@ fun EssaysTabContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredEssays, key = { it.id }) { essay ->
-                        EssayListItem(essay = essay, onClick = { onNavigateToEssayResult(essay.id) })
+                        EssayListItem(
+                            essay = essay,
+                            onClick = { onNavigateToEssayResult(essay.id) },
+                            onDeleteClick = { essayToDelete = essay }
+                        )
                     }
                 }
             }
@@ -145,7 +181,11 @@ fun EssaysTabContent(
 private val essayDateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
 @Composable
-private fun EssayListItem(essay: Essay, onClick: () -> Unit) {
+private fun EssayListItem(
+    essay: Essay,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
@@ -177,7 +217,7 @@ private fun EssayListItem(essay: Essay, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             if (essay.score != null) {
                 Box(
@@ -196,6 +236,16 @@ private fun EssayListItem(essay: Essay, onClick: () -> Unit) {
                     text = "Corrigindo...",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Excluir redação",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                 )
             }
         }

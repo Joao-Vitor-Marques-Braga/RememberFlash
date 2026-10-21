@@ -32,6 +32,7 @@ data class HomeUiState(
     val essays: List<Essay> = emptyList(),
     val allQuestions: List<Question> = emptyList(),
     val allDisciplines: List<Discipline> = emptyList(),
+    val allTopics: List<com.rememberflash.app.domain.model.Topic> = emptyList(),
     val dailyGoalProgress: Float = 0f,
     val todayGoals: List<DailyGoal> = emptyList(),
     val allDailyGoals: List<DailyGoal> = emptyList(),
@@ -47,6 +48,7 @@ class HomeViewModel @Inject constructor(
     private val essayRepository: EssayRepository,
     private val questionRepository: QuestionRepository,
     private val disciplineRepository: DisciplineRepository,
+    private val topicRepository: com.rememberflash.app.domain.repository.TopicRepository,
     private val scheduleRepository: ScheduleRepository,
     private val logoutUseCase: com.rememberflash.app.domain.usecase.auth.LogoutUseCase,
     private val syncManager: SyncManager
@@ -104,6 +106,7 @@ class HomeViewModel @Inject constructor(
         observeEssays(user.id)
         observeQuestions()
         observeDisciplines()
+        observeTopics()
         observeDailyGoals()
         observeMockExamAttempts()
     }
@@ -149,6 +152,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun observeTopics() {
+        viewModelScope.launch {
+            topicRepository.getAllTopicsFlow()
+                .catch { }
+                .collect { topics -> _uiState.update { it.copy(allTopics = topics) } }
+        }
+    }
+
     private fun observeDailyGoals() {
         viewModelScope.launch {
             scheduleRepository.getAllDailyGoalsFlow()
@@ -181,6 +192,12 @@ class HomeViewModel @Inject constructor(
                 completedMinutes = completedMinutes.coerceAtLeast(0),
                 flashcardsCompleted = flashcardsCompleted.coerceAtLeast(0)
             )
+        }
+    }
+
+    fun deleteEssay(essayId: Long) {
+        viewModelScope.launch {
+            essayRepository.delete(essayId)
         }
     }
 }

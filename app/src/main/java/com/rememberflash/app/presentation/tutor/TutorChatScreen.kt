@@ -30,11 +30,22 @@ fun TutorChatScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    // Rola para a última mensagem automaticamente
+    // Rola para a última mensagem automaticamente quando novas mensagens chegarem
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             scope.launch {
-                listState.animateScrollToItem(uiState.messages.size - 1)
+                listState.animateScrollToItem(uiState.messages.size)
+            }
+        }
+    }
+
+    // Rola para a última mensagem quando o teclado virtual abrir
+    val imeInsets = WindowInsets.ime
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    LaunchedEffect(imeInsets.getBottom(density)) {
+        if (imeInsets.getBottom(density) > 0 && uiState.messages.isNotEmpty()) {
+            scope.launch {
+                listState.animateScrollToItem(uiState.messages.size)
             }
         }
     }
@@ -82,13 +93,15 @@ fun TutorChatScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        },
+        contentWindowInsets = WindowInsets.statusBars
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
+                .imePadding()
         ) {
             // Histórico de Mensagens
             LazyColumn(
@@ -173,9 +186,8 @@ fun TutorChatScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
                         .navigationBarsPadding()
-                        .imePadding(),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(

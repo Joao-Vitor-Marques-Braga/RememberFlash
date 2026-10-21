@@ -30,6 +30,7 @@ import java.util.*
 @Composable
 fun ScheduleScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToDiscipline: (Long) -> Unit = {},
     viewModel: ScheduleViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -129,7 +130,8 @@ fun ScheduleScreen(
                     uiState = uiState,
                     onDateSelected = viewModel::onSelectDate,
                     onUpdateProgress = viewModel::updateGoalProgress,
-                    onRecalculate = viewModel::onRecalculateClicked
+                    onRecalculate = viewModel::onRecalculateClicked,
+                    onNavigateToDiscipline = onNavigateToDiscipline
                 )
             }
         }
@@ -341,7 +343,8 @@ fun ScheduleCalendarView(
     uiState: ScheduleUiState,
     onDateSelected: (Long) -> Unit,
     onUpdateProgress: (DailyGoal, Int, Int) -> Unit,
-    onRecalculate: () -> Unit
+    onRecalculate: () -> Unit,
+    onNavigateToDiscipline: (Long) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -449,7 +452,8 @@ fun ScheduleCalendarView(
                 GoalProgressCard(
                     goal = goal,
                     disciplineName = uiState.disciplinesMap[goal.disciplineId] ?: "Disciplina",
-                    onUpdate = onUpdateProgress
+                    onUpdate = onUpdateProgress,
+                    onNavigateToDiscipline = onNavigateToDiscipline
                 )
             }
         }
@@ -462,10 +466,13 @@ fun ScheduleCalendarView(
 fun GoalProgressCard(
     goal: DailyGoal,
     disciplineName: String,
-    onUpdate: (DailyGoal, Int, Int) -> Unit
+    onUpdate: (DailyGoal, Int, Int) -> Unit,
+    onNavigateToDiscipline: (Long) -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onNavigateToDiscipline(goal.disciplineId) },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (goal.isCompleted) {
@@ -486,47 +493,65 @@ fun GoalProgressCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = disciplineName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                if (goal.isCompleted) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Concluído",
-                        tint = Color.Green,
-                        modifier = Modifier.size(24.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = disciplineName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                } else {
-                    IconButton(
-                        onClick = {
-                            onUpdate(goal, goal.targetMinutes, goal.flashcardsTarget)
-                        }
-                    ) {
+                    Text(
+                        text = "Toque no card para abrir a disciplina →",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (goal.isCompleted) {
                         Icon(
-                            imageVector = Icons.Default.RadioButtonUnchecked,
-                            contentDescription = "Marcar como Concluído",
-                            tint = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Concluído",
+                            tint = Color.Green,
+                            modifier = Modifier.size(24.dp)
                         )
+                    } else {
+                        IconButton(
+                            onClick = {
+                                onUpdate(goal, goal.targetMinutes, goal.flashcardsTarget)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RadioButtonUnchecked,
+                                contentDescription = "Marcar como Concluído",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Acessar disciplina",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
-            // Progresso de Tempo (Minutos)
+            // Progresso de Questões Resolvidas
+            val targetQuestions = maxOf(15, goal.targetMinutes / 2)
+            val targetCards = if (goal.flashcardsTarget > 15) 10 else goal.flashcardsTarget.coerceAtLeast(5)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Tempo de Estudo",
+                        text = "Questões Resolvidas",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${goal.completedMinutes} / ${goal.targetMinutes} min",
+                        text = "${goal.completedMinutes} / $targetQuestions questões",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -534,8 +559,8 @@ fun GoalProgressCard(
                 
                 LinearProgressIndicator(
                     progress = { 
-                        if (goal.targetMinutes > 0) {
-                            (goal.completedMinutes.toFloat() / goal.targetMinutes).coerceIn(0f, 1f)
+                        if (targetQuestions > 0) {
+                            (goal.completedMinutes.toFloat() / targetQuestions).coerceIn(0f, 1f)
                         } else 0f 
                     },
                     modifier = Modifier
@@ -549,36 +574,36 @@ fun GoalProgressCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { onUpdate(goal, goal.completedMinutes - 15, goal.flashcardsCompleted) },
+                        onClick = { onUpdate(goal, maxOf(0, goal.completedMinutes - 5), goal.flashcardsCompleted) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     ) {
-                        Text("-15m")
+                        Text("-5 questões")
                     }
                     Button(
-                        onClick = { onUpdate(goal, goal.completedMinutes + 15, goal.flashcardsCompleted) },
+                        onClick = { onUpdate(goal, goal.completedMinutes + 5, goal.flashcardsCompleted) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("+15m")
+                        Text("+5 questões")
                     }
                 }
             }
 
-            // Progresso de Flashcards
+            // Progresso de Flashcards (Revisar Cards)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Revisar Flashcards",
+                        text = "Revisar Cards",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${goal.flashcardsCompleted} / ${goal.flashcardsTarget} flashcards",
+                        text = "${goal.flashcardsCompleted} / $targetCards cards",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -602,7 +627,7 @@ fun GoalProgressCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { onUpdate(goal, goal.completedMinutes, goal.flashcardsCompleted - 5) },
+                        onClick = { onUpdate(goal, goal.completedMinutes, maxOf(0, goal.flashcardsCompleted - 5)) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -13,6 +13,7 @@ interface TopicRepository {
     fun getByDisciplineFlow(disciplineId: Long): Flow<List<Topic>>
     suspend fun getByDiscipline(disciplineId: Long): Result<List<Topic>>
     fun getByContestFlow(contestId: Long): Flow<List<Topic>>
+    fun getAllTopicsFlow(): Flow<List<Topic>>
     suspend fun getById(topicId: Long): Result<Topic>
     suspend fun syncDisciplineTopicCounters(disciplineId: Long): Result<Unit>
 }

@@ -26,10 +26,33 @@ class EssayResultViewModel @Inject constructor(
     private val gson = Gson()
 
     init {
-        savedStateHandle.get<Long>("essayId")?.let { id ->
+        val id = savedStateHandle.get<Long>("essayId")
+            ?: savedStateHandle.get<String>("essayId")?.toLongOrNull()
+        if (id != null) {
             loadEssay(id)
-        } ?: run {
+        } else {
             _uiState.value = _uiState.value.copy(error = "Identificador da redação inválido.")
+        }
+    }
+
+    fun deleteEssay(onSuccess: () -> Unit) {
+        val essayId = _uiState.value.essay?.id ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            when (val result = essayRepository.delete(essayId)) {
+                is Result.Success -> {
+                    onSuccess()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
+                else -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            }
         }
     }
 

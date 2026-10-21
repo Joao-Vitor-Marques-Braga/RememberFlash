@@ -16,4 +16,5 @@ interface EssayRepository {
     fun getByUser(userId: String): Flow<List<Essay>>
     fun getByContest(contestId: Long): Flow<List<Essay>>
     suspend fun getById(essayId: Long): Result<Essay>
+    suspend fun delete(essayId: Long): Result<Unit>
 }

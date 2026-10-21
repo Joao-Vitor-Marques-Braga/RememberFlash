@@ -108,6 +108,12 @@ class TopicRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getAllTopicsFlow(): Flow<List<Topic>> {
+        return topicDao.getAllTopicsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun getById(topicId: Long): Result<Topic> {
         return try {
             val entity = topicDao.getById(topicId)

@@ -214,6 +214,9 @@ class ContestTest {
         override fun getByContestFlow(contestId: Long): Flow<List<Topic>> =
             MutableStateFlow(emptyList())
 
+        override fun getAllTopicsFlow(): Flow<List<Topic>> =
+            MutableStateFlow(emptyList())
+
         override suspend fun getById(topicId: Long): Result<Topic> = Result.error("Não encontrado")
 
         override suspend fun syncDisciplineTopicCounters(disciplineId: Long): Result<Unit> =

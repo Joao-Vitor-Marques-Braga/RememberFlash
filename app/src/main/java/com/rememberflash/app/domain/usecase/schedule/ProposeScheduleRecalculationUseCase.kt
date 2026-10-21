@@ -130,7 +130,7 @@ class ProposeScheduleRecalculationUseCase @Inject constructor(
                     proposedWeights.forEach { (discipline, weight) ->
                         val proportion = weight / proposedTotalWeight
                         val targetMinutes = (availableMinutesPerDay * proportion).toInt().coerceAtLeast(10)
-                        val flashcardsTarget = (targetMinutes / 5).coerceAtLeast(2)
+                        val flashcardsTarget = (targetMinutes / 6).coerceIn(5, 15)
 
                         goals.add(
                             DailyGoal(
